@@ -202,4 +202,6 @@ data class IntelUiState(
     val hit: HitRate = HitRate(),
     val restErrors: List<String> = emptyList(),
     val liqSeen: Boolean = false,
+    val bids: List<Pair<Double, Double>> = emptyList(),
+    val asks: List<Pair<Double, Double>> = emptyList(),
 )
