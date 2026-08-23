@@ -689,7 +689,7 @@ internal fun PositionCard(r: V4Report?, equity: Double, riskPct: Double) {
 }
 
 @Composable
-private fun LiqPulse(r: V4Report?, seen: Boolean) {
+internal fun LiqPulse(r: V4Report?, seen: Boolean) {
     if (!seen) return
     val scheme = MaterialTheme.colorScheme
     val l = r?.liqLong ?: 0.0
