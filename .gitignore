@@ -1,35 +1,18 @@
-# Python
-.venv/
-__pycache__/
-*.py[cod]
-*.egg-info/
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-
-# Secrets / session / crawl artifacts
-data/browser_profile/
-data/session/
-data/mitm/
-data/logs/
-data/db/
-*.vault
-.vault.key
-.env
-.env.*
-
 # Android / Gradle
 android/.gradle/
 android/.idea/
 android/local.properties
 android/**/build/
-android/app/release/
 android/captures/
 *.apk
 *.aab
 *.ap_
 *.dex
 *.iml
+
+# Secrets
+.env
+.env.*
 
 # OS / editor
 .DS_Store
