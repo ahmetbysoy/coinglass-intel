@@ -285,16 +285,16 @@ fun CandleChart(
                         .fillMaxSize()
                         .pointerInput(shown.size) {
                             detectTapGestures { off ->
-                                hitIdx = ChartHit.index(off.x, size.width, shown.size) ?: -1
+                                hitIdx = ChartHit.index(off.x, size.width.toFloat(), shown.size) ?: -1
                             }
                         }
                         .pointerInput(shown.size) {
                             detectDragGesturesAfterLongPress(
                                 onDragStart = { off ->
-                                    hitIdx = ChartHit.index(off.x, size.width, shown.size) ?: -1
+                                    hitIdx = ChartHit.index(off.x, size.width.toFloat(), shown.size) ?: -1
                                 },
                                 onDrag = { change, _ ->
-                                    hitIdx = ChartHit.index(change.position.x, size.width, shown.size) ?: hitIdx
+                                    hitIdx = ChartHit.index(change.position.x, size.width.toFloat(), shown.size) ?: hitIdx
                                     change.consume()
                                 },
                             )
