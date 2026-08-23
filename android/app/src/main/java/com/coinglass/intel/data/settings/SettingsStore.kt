@@ -23,6 +23,7 @@ data class UserSettings(
     val lastSymbol: String = "",
     val equityUsd: Double = 1_000.0,
     val riskPct: Double = 1.0,
+    val onboardDone: Boolean = false,
 )
 
 class SettingsStore(private val ctx: Context) {
@@ -36,6 +37,7 @@ class SettingsStore(private val ctx: Context) {
     private val LAST = stringPreferencesKey("last_symbol")
     private val EQ = doublePreferencesKey("equity_usd")
     private val RISK = doublePreferencesKey("risk_pct")
+    private val ONB = booleanPreferencesKey("onboard_done")
 
     val flow: Flow<UserSettings> = ctx.dataStore.data.map { p ->
         UserSettings(
@@ -49,6 +51,7 @@ class SettingsStore(private val ctx: Context) {
             lastSymbol = p[LAST] ?: "",
             equityUsd = p[EQ] ?: 1_000.0,
             riskPct = p[RISK] ?: 1.0,
+            onboardDone = p[ONB] ?: false,
         )
     }
 
@@ -65,6 +68,7 @@ class SettingsStore(private val ctx: Context) {
                 lastSymbol = p[LAST] ?: "",
                 equityUsd = p[EQ] ?: 1_000.0,
                 riskPct = p[RISK] ?: 1.0,
+                onboardDone = p[ONB] ?: false,
             )
             val n = block(cur)
             p[LIQ] = n.liqAlertUsd
@@ -77,6 +81,7 @@ class SettingsStore(private val ctx: Context) {
             p[LAST] = n.lastSymbol
             p[EQ] = n.equityUsd
             p[RISK] = n.riskPct
+            p[ONB] = n.onboardDone
         }
     }
 }

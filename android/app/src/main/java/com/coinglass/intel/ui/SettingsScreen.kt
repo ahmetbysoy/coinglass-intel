@@ -62,6 +62,9 @@ fun SettingsScreen(
                 onToggleService(on)
             }
             Toggle("Koyu tema", s.darkTheme) { on -> onChange { it.copy(darkTheme = on) } }
+            Toggle("Turı tekrar göster", !s.onboardDone) { on ->
+                onChange { it.copy(onboardDone = !on) }
+            }
         }
         Spacer(Modifier.height(Space.md))
         Panel {

@@ -1,1 +1,1 @@
-v1.3: DOM heatmap, pozisyon boyutu, Bybit/OKX BBO, scanner grid, ScanCoordinator.
+v1.4: custom nav+icon, interaktif tur, günlük risk şeridi.

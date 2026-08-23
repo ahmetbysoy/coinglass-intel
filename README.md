@@ -2,29 +2,25 @@
 
 Native Kotlin / Jetpack Compose telefon istihbaratı.
 
-Sembol **hardcode değil**. Watchlist = senin yazdığın pair (Room). İlk açılışta öneri çipi yok.
+Sembol **hardcode değil**. Watchlist = senin yazdığın pair (Room).
 
-## Karar katmanı
+## Karar
 
-- **Tek satır karar** + A/B/C/D
-- **GİRME** kırmızı şerit: spoof≥50 / coverage<%40 / netRR<1
-- Pozisyon boyutu: bakiye × risk% / SL mesafesi (emir yok)
+Tek satır + A/B/C/D. **GİRME** kırmızı: spoof≥50 / coverage<%40 / netRR<1.
 
-## DOM + cross-exchange
+İlk açılışta 3 adımlı tur (sabit coin yok). Ayarlar’dan tekrar açılır.
 
-Canlı order book heatmap (spoof duvar sarı). Bybit `orderbook.1` + OKX `bbo-tbt` hafif WS — REST yaşı SourceStale'de BY/OKX.
+## Para
 
-## Tema
+Pozisyon boyutu = bakiye × risk% / SL. Günlük risk şeridi: 8+ kayıt veya 3 kayıp üst üste → DUR.
 
-`colorScheme` + `Space`/`Radii`. Açık tema pastel zemin, skor yeşil/kırmızı pastelleşmez.
+## DOM + borsalar
+
+Canlı kitap heatmap. Binance WS + Bybit/OKX BBO. REST 600 mum, WS ezmez.
 
 ## Grafik
 
-**1m / 3m / 5m / 15m**. REST 600 seed, WS ezmez. VAL/VAH bant, POC, spoof kesikli.
-
-## Tarayıcı
-
-Filtre chip, sparkline, liste/grid, öne çıkanlar. ScanCoordinator: FGS ve Worker tek yol, spam = 10dk + Δskor<8 sessiz.
+Sadece **1m / 3m / 5m / 15m**. VAL/VAH bant, spoof kesikli.
 
 ## CI
 

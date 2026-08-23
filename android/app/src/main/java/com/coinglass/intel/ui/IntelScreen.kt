@@ -69,6 +69,7 @@ import kotlin.math.abs
 fun IntelScreen(vm: AppViewModel) {
     val state by vm.live.collectAsStateWithLifecycle()
     val cfg by vm.settings.collectAsStateWithLifecycle()
+    val outcomes by vm.outcomes.collectAsStateWithLifecycle()
     var query by remember(state.symbol) { mutableStateOf(state.symbol) }
     val focus = LocalFocusManager.current
     val scheme = MaterialTheme.colorScheme
@@ -170,6 +171,13 @@ fun IntelScreen(vm: AppViewModel) {
                 .weight(1f)
                 .verticalScroll(rememberScrollState()),
         ) {
+            if (state.symbol.isBlank() && state.chips.isEmpty() && !cfg.onboardDone) {
+                OnboardTour(
+                    onSubmit = { vm.submit(it) },
+                    onDone = { vm.updateSettings { it.copy(onboardDone = true) } },
+                )
+                return@Column
+            }
             if (state.symbol.isBlank() && state.chips.isEmpty()) {
                 Onboard()
                 return@Column
@@ -181,6 +189,7 @@ fun IntelScreen(vm: AppViewModel) {
             }
             FundingBanner(r)
             VerdictCard(r)
+            DailyRiskStrip(outcomes)
             Spacer(Modifier.height(10.dp))
             PriceCard(state, r)
             Spacer(Modifier.height(10.dp))
@@ -247,7 +256,7 @@ private fun Header(state: IntelUiState) {
     ) {
         Column(Modifier.weight(1f)) {
             Text("COINGLASS INTEL", color = scheme.primary, fontWeight = FontWeight.Black, letterSpacing = 1.4.sp, fontSize = 13.sp)
-            Text("phone · v4.3 karar katmanı", color = scheme.onSurfaceVariant, fontSize = 11.sp)
+            Text("karar · spoof · netRR", color = scheme.onSurfaceVariant, fontSize = 11.sp)
         }
         val live = state.conn.public.connected || state.conn.market.connected
         val c by animateColorAsState(if (live) Bull else Bear, label = "live")
@@ -677,6 +686,25 @@ private fun SourceStale(state: IntelUiState, staleSec: Int) {
             )
         }
     }
+}
+
+@Composable
+private fun DailyRiskStrip(rows: List<OutcomeEntity>) {
+    val s = DailyRisk.of(rows)
+    if (s.trades == 0 && !s.hot) return
+    val scheme = MaterialTheme.colorScheme
+    Text(
+        s.line,
+        color = if (s.hot) scheme.onError else scheme.onSurface,
+        fontWeight = if (s.hot) FontWeight.Black else FontWeight.Normal,
+        fontSize = 12.sp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = Space.sm)
+            .clip(RoundedCornerShape(Radii.sm))
+            .background(if (s.hot) Bear else scheme.surfaceVariant)
+            .padding(horizontal = Space.md, vertical = Space.xs),
+    )
 }
 
 @Composable

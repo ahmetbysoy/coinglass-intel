@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.coinglass.intel.data.db.OutcomeEntity
+import com.coinglass.intel.domain.DailyRisk
 import com.coinglass.intel.ui.theme.Bear
 import com.coinglass.intel.ui.theme.Bull
 import com.coinglass.intel.ui.theme.Radii
@@ -83,6 +84,13 @@ fun PerformanceScreen(rows: List<OutcomeEntity>) {
             .padding(horizontal = Space.lg),
     ) {
         Text("İSABET", color = scheme.primary, fontWeight = FontWeight.Black, letterSpacing = 1.2.sp, fontSize = 13.sp)
+        val day = DailyRisk.of(rows)
+        Text(
+            day.line,
+            color = if (day.hot) Bear else scheme.onSurfaceVariant,
+            fontWeight = if (day.hot) FontWeight.Black else FontWeight.Normal,
+            fontSize = 12.sp,
+        )
         Row(horizontalArrangement = Arrangement.spacedBy(Space.sm), modifier = Modifier.padding(vertical = Space.sm)) {
             Horizon.entries.forEach { h ->
                 val on = h == hz

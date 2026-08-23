@@ -6,11 +6,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -18,6 +13,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coinglass.intel.ui.AppViewModel
 import com.coinglass.intel.ui.IntelScreen
@@ -48,25 +44,25 @@ class MainActivity : ComponentActivity() {
                             NavigationBarItem(
                                 selected = tab == 0,
                                 onClick = { vm.selectTab(0) },
-                                icon = { Icon(Icons.Default.ShowChart, contentDescription = "canli") },
+                                icon = { Icon(painterResource(R.drawable.ic_nav_live), contentDescription = "canli") },
                                 label = { Text("Canli") },
                             )
                             NavigationBarItem(
                                 selected = tab == 1,
                                 onClick = { vm.selectTab(1) },
-                                icon = { Icon(Icons.Default.List, contentDescription = "tarayici") },
+                                icon = { Icon(painterResource(R.drawable.ic_nav_scan), contentDescription = "tarayici") },
                                 label = { Text("Tarayici") },
                             )
                             NavigationBarItem(
                                 selected = tab == 2,
                                 onClick = { vm.selectTab(2) },
-                                icon = { Icon(Icons.Default.Info, contentDescription = "isabet") },
+                                icon = { Icon(painterResource(R.drawable.ic_nav_hit), contentDescription = "isabet") },
                                 label = { Text("Isabet") },
                             )
                             NavigationBarItem(
                                 selected = tab == 3,
                                 onClick = { vm.selectTab(3) },
-                                icon = { Icon(Icons.Default.Settings, contentDescription = "ayarlar") },
+                                icon = { Icon(painterResource(R.drawable.ic_nav_set), contentDescription = "ayarlar") },
                                 label = { Text("Ayarlar") },
                             )
                         }
