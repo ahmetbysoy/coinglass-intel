@@ -187,11 +187,11 @@ fun CandleChart(
                         val vh = (volH * (c.volume / maxVol).toFloat()).coerceAtLeast(1f)
                         drawRect(col.copy(alpha = 0.45f), Offset(x - bodyW / 2f, size.height - vh), Size(bodyW, vh))
                     }
-                    if (!liqHeat.empty) {
+                    if (!heat.empty) {
                         val strip = size.width * 0.14f
                         val left = size.width - strip
-                        val maxU = liqHeat.maxUsd
-                        for (b in liqHeat.bins) {
+                        val maxU = heat.maxUsd
+                        for (b in heat.bins) {
                             if (b.total <= 0) continue
                             val y1 = y(b.hi)
                             val y2 = y(b.lo)
