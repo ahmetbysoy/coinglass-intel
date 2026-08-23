@@ -73,6 +73,7 @@ import kotlin.math.abs
 @Composable
 fun IntelScreen(vm: AppViewModel) {
     val state by vm.live.collectAsStateWithLifecycle()
+    val cfg by vm.settings.collectAsStateWithLifecycle()
     var query by remember(state.symbol) { mutableStateOf(state.symbol) }
     val focus = LocalFocusManager.current
 
@@ -161,8 +162,18 @@ fun IntelScreen(vm: AppViewModel) {
                 .weight(1f)
                 .verticalScroll(rememberScrollState()),
         ) {
+            if (state.symbol.isBlank() && state.chips.isEmpty()) {
+                Onboard()
+                return@Column
+            }
             val r = state.report
             PriceCard(state, r)
+            Spacer(Modifier.height(10.dp))
+            StrategyCard(r, state.hit.line)
+            Spacer(Modifier.height(10.dp))
+            ScoreCard(r)
+            Spacer(Modifier.height(10.dp))
+            SourceStale(state, cfg.staleSeconds)
             Spacer(Modifier.height(10.dp))
             val candles = if (state.chartTf == "4h") state.candles4h else state.candles1h
             CandleChart(
@@ -172,13 +183,17 @@ fun IntelScreen(vm: AppViewModel) {
                 tp = r?.tp ?: 0.0,
                 label = state.chartTf,
                 onToggle = { vm.toggleChartTf() },
+                support = r?.support ?: 0.0,
+                resistance = r?.resistance ?: 0.0,
+                bidWall = r?.bidWall ?: 0.0,
+                askWall = r?.askWall ?: 0.0,
             )
             Spacer(Modifier.height(10.dp))
-            ScoreCard(r)
-            Spacer(Modifier.height(10.dp))
-            StrategyCard(r)
-            Spacer(Modifier.height(10.dp))
-            MetricsGrid(r)
+            MetricsGrid(r, state.liqSeen)
+            if (state.restErrors.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                WarnCard(state.restErrors.take(4).map { "REST $it" })
+            }
             Spacer(Modifier.height(10.dp))
             TfRow(r?.tfPreds.orEmpty())
             Spacer(Modifier.height(10.dp))
@@ -290,11 +305,12 @@ private fun ScoreCard(r: V4Report?) {
 }
 
 @Composable
-private fun StrategyCard(r: V4Report?) {
+private fun StrategyCard(r: V4Report?, hitLine: String) {
     Card {
         Text("STRATEJİ", color = Mute, fontSize = 11.sp, letterSpacing = 0.8.sp)
         Spacer(Modifier.height(4.dp))
         Text(r?.strategy ?: "veri bekleniyor…", color = Text, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+        Text(hitLine, color = Mute, fontSize = 11.sp, modifier = Modifier.padding(top = 4.dp))
         if (r != null && r.sl > 0 && r.tp > 0) {
             Spacer(Modifier.height(8.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -307,14 +323,16 @@ private fun StrategyCard(r: V4Report?) {
 }
 
 @Composable
-private fun MetricsGrid(r: V4Report?) {
+private fun MetricsGrid(r: V4Report?, liqSeen: Boolean) {
+    val liqL = if (liqSeen) fmtUsd(r?.liqLong ?: 0.0) else "N/A"
+    val liqS = if (liqSeen) fmtUsd(r?.liqShort ?: 0.0) else "N/A"
     val cells = listOf(
         "OI" to fmtUsd(r?.oi ?: 0.0),
         "FUNDING" to "${"%+.4f".format((r?.funding ?: 0.0) * 100)}%",
         "L/S" to "%.3f".format(r?.ls ?: 1.0),
         "CVD" to "${"%+.1f".format(r?.cvdPct ?: 0.0)}%",
-        "LIQ L" to fmtUsd(r?.liqLong ?: 0.0),
-        "LIQ S" to fmtUsd(r?.liqShort ?: 0.0),
+        "LIQ L" to liqL,
+        "LIQ S" to liqS,
     )
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         cells.chunked(3).forEach { row ->
@@ -359,7 +377,7 @@ private fun TfRow(preds: List<TfPred>) {
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(p.timeframe, color = Mute, fontSize = 11.sp)
-                Text(p.direction, color = c, fontWeight = FontWeight.Black, fontSize = 16.sp)
+                Text(p.direction, color = c.copy(alpha = (0.35f + 0.65f * p.confidence.toFloat()).coerceIn(0.35f, 1f)), fontWeight = FontWeight.Black, fontSize = 16.sp)
                 Text("%${(p.confidence * 100).toInt()}", color = Mute, fontSize = 11.sp)
             }
         }

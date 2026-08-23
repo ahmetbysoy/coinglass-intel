@@ -6,12 +6,14 @@ import com.coinglass.intel.data.ws.CoinGlassLiqWs
 import com.coinglass.intel.domain.Analyzers
 import com.coinglass.intel.domain.MarketScorer
 import com.coinglass.intel.domain.Symbols
+import com.coinglass.intel.domain.model.BookSnap
 import com.coinglass.intel.domain.model.Candle
 import com.coinglass.intel.domain.model.ConnStats
 import com.coinglass.intel.domain.model.IntelUiState
 import com.coinglass.intel.domain.model.NamedPrice
 import com.coinglass.intel.domain.model.OrderBook
 import com.coinglass.intel.domain.model.ScoreInput
+import com.coinglass.intel.domain.model.SourceFresh
 import com.coinglass.intel.domain.model.StreamEvent
 import com.coinglass.intel.domain.model.TradePrint
 import com.coinglass.intel.domain.toFloat
@@ -51,9 +53,20 @@ class MarketRepository(
     private val k5 = linkedMapOf<Double, Candle>()
     private var liqLong = 0.0
     private var liqShort = 0.0
+    private var liqSeen = false
     private var watchJob: Job? = null
     private var symbol = ""
     private var chartTf = "1h"
+    private var boost: Map<String, Double> = emptyMap()
+    private val bookHist = ArrayDeque<BookSnap>()
+    private var priceMs = 0L
+    private var oiMs = 0L
+    private var fundMs = 0L
+    private var obMs = 0L
+
+    fun setBoost(b: Map<String, Double>) {
+        boost = b
+    }
 
     init {
         externalScope.launch {
@@ -97,6 +110,9 @@ class MarketRepository(
         k5.clear()
         liqLong = 0.0
         liqShort = 0.0
+        liqSeen = false
+        bookHist.clear()
+        priceMs = 0L; oiMs = 0L; fundMs = 0L; obMs = 0L
         _state.update {
             it.copy(
                 symbol = next,
@@ -140,7 +156,10 @@ class MarketRepository(
         }
         when (ev.kind) {
             "trade" -> {
-                if (ev.price > 0) livePrice = ev.price
+                if (ev.price > 0) {
+                    livePrice = ev.price
+                    priceMs = System.currentTimeMillis()
+                }
                 val qty = if (ev.price > 0) ev.sizeUsd / ev.price else 0.0
                 liveTrades.addLast(TradePrint(ev.price, qty, ev.side == "sell"))
                 while (liveTrades.size > 200) liveTrades.removeFirst()
@@ -151,11 +170,26 @@ class MarketRepository(
                 @Suppress("UNCHECKED_CAST")
                 val asks = ev.extra["asks"] as? List<Pair<Double, Double>> ?: emptyList()
                 liveBook = Analyzers.orderBook(bids, asks)
+                obMs = System.currentTimeMillis()
+                liveBook?.let { ob ->
+                    val medB = ob.bids.map { it.second }.sorted().let { if (it.isEmpty()) 1.0 else it[it.size / 2] }
+                    val medA = ob.asks.map { it.second }.sorted().let { if (it.isEmpty()) 1.0 else it[it.size / 2] }
+                    bookHist.addLast(
+                        BookSnap(
+                            ts = obMs,
+                            mid = ob.mid,
+                            bidWalls = ob.bids.filter { it.second >= medB * 8 }.take(6),
+                            askWalls = ob.asks.filter { it.second >= medA * 8 }.take(6),
+                        ),
+                    )
+                    while (bookHist.size > 24) bookHist.removeFirst()
+                }
                 if (ev.price > 0 && livePrice == 0.0) livePrice = ev.price
             }
             "markPrice" -> {
                 if (ev.price > 0) markPrice = ev.price
                 liveFunding = toFloat(ev.extra["funding"])
+                fundMs = System.currentTimeMillis()
             }
             "kline" -> {
                 val interval = ev.extra["i"]?.toString().orEmpty()
@@ -176,6 +210,7 @@ class MarketRepository(
                 if (c.close > 0) livePrice = c.close
             }
             "forceOrder", "liquidation" -> {
+                liqSeen = true
                 val usd = ev.sizeUsd
                 when (ev.side) {
                     "long", "sell" -> liqLong += usd

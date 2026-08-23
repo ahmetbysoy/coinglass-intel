@@ -34,6 +34,13 @@ class ExchangeRest(private val client: OkHttpClient) {
         private const val UA = "cg-intel/4.3"
     }
 
+    private val errors = java.util.Collections.synchronizedList(mutableListOf<String>())
+    fun drainErrors(): List<String> = synchronized(errors) {
+        val out = errors.toList()
+        errors.clear()
+        out
+    }
+
     suspend fun fetch(raw: String): ScoreInput = withContext(Dispatchers.IO) {
         val info = Symbols.resolve(raw)
         val pair = info.binance
@@ -80,6 +87,7 @@ class ExchangeRest(private val client: OkHttpClient) {
             klines15m = bn.k15,
             klines1h = bn.k1h,
             klines4h = bn.k4h,
+            restErrors = drainErrors(),
         )
     }
 
@@ -126,6 +134,7 @@ class ExchangeRest(private val client: OkHttpClient) {
             k5 = parseKlines(k5),
             k15 = parseKlines(k15),
             k1h = parseKlines(k1h),
+            k4h = parseKlines(k4h),
         )
     }
 

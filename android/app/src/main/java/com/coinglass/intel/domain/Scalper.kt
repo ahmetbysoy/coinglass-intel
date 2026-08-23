@@ -37,16 +37,44 @@ object Scalper {
         return if (den == 0.0) 0.0 else num / den
     }
 
+    fun volWeightedSlope(xs: List<Double>, vols: List<Double>): Double {
+        val n = minOf(xs.size, vols.size)
+        if (n < 3) return 0.0
+        val x = xs.takeLast(n)
+        val w = vols.takeLast(n).map { max(it, 1e-9) }
+        val wSum = w.sum()
+        val xMean = x.zip(w).sumOf { it.first * it.second } / wSum
+        var iMean = 0.0
+        for (i in 0 until n) iMean += i * w[i]
+        iMean /= wSum
+        var num = 0.0
+        var den = 0.0
+        for (i in 0 until n) {
+            num += w[i] * (x[i] - xMean) * (i - iMean)
+            den += w[i] * (i - iMean) * (i - iMean)
+        }
+        return if (den == 0.0) 0.0 else num / den
+    }
+
     fun detectCvdDivergence(
         priceSeries: List<Double>,
         cvdSeries: List<Double>,
+        volumes: List<Double> = emptyList(),
         lookback: Int = 20,
     ): Map<String, Any?> {
         if (priceSeries.size < lookback || cvdSeries.size < lookback) {
             return mapOf("divergence" to false, "type" to null, "strength" to 0.0)
         }
-        val ps = linearSlope(priceSeries.takeLast(lookback))
-        val cs = linearSlope(cvdSeries.takeLast(lookback))
+        val px = priceSeries.takeLast(lookback)
+        val cv = cvdSeries.takeLast(lookback)
+        val vs = if (volumes.size >= lookback) volumes.takeLast(lookback) else List(lookback) { 1.0 }
+        val lastVol = vs.takeLast(5).average()
+        val medVol = vs.sorted()[vs.size / 2]
+        if (medVol > 0 && lastVol < medVol * 0.55) {
+            return mapOf("divergence" to false, "type" to null, "strength" to 0.0, "filtered" to "low_volume")
+        }
+        val ps = volWeightedSlope(px, vs)
+        val cs = volWeightedSlope(cv, vs)
         return when {
             ps > 0 && cs < 0 -> mapOf("divergence" to true, "type" to "bearish", "strength" to abs(ps) + abs(cs))
             ps < 0 && cs > 0 -> mapOf("divergence" to true, "type" to "bullish", "strength" to abs(ps) + abs(cs))

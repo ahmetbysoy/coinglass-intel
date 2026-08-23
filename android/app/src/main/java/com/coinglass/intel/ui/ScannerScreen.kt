@@ -46,9 +46,11 @@ fun ScannerScreen(
     scanning: Boolean,
     staleSec: Int,
     now: Long,
+    compare: List<String>,
     onOpen: (String) -> Unit,
     onRemove: (String) -> Unit,
     onRefresh: () -> Unit,
+    onCompare: (String) -> Unit,
 ) {
     val ranked = snaps.sortedByDescending { abs(it.score) }
     Column(
@@ -68,7 +70,21 @@ fun ScannerScreen(
         }
         Spacer(Modifier.height(8.dp))
         if (ranked.isEmpty()) {
-            Text("Watchlist bos. Canli ekranda sembol yaz, yildiza bas.", color = Mute, fontSize = 13.sp)
+            Text("Watchlist bos. Canli ekranda sembol yaz, yildiza bas. Sabit coin listesi yok.", color = Mute, fontSize = 13.sp)
+        }
+        if (compare.size == 2) {
+            val a = snaps.firstOrNull { it.symbol == compare[0] }
+            val b = snaps.firstOrNull { it.symbol == compare[1] }
+            if (a != null && b != null) {
+                Text("KARSILASTIR", color = Accent, fontSize = 11.sp, fontWeight = FontWeight.Black)
+                Text(
+                    "${a.symbol} ${"%+.1f".format(a.score)} ${a.direction}   vs   ${b.symbol} ${"%+.1f".format(b.score)} ${b.direction}",
+                    color = Mute, fontSize = 12.sp,
+                )
+                val d = a.score - b.score
+                Text("skor farki ${"%+.1f".format(d)}", color = if (d >= 0) Bull else Bear, fontSize = 12.sp)
+                Spacer(Modifier.height(8.dp))
+            }
         }
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(ranked, key = { it.symbol }) { s ->

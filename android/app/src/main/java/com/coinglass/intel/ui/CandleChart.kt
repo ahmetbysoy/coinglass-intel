@@ -40,6 +40,10 @@ fun CandleChart(
     tp: Double,
     label: String,
     onToggle: () -> Unit,
+    support: Double = 0.0,
+    resistance: Double = 0.0,
+    bidWall: Double = 0.0,
+    askWall: Double = 0.0,
 ) {
     Column(
         modifier = Modifier
@@ -77,7 +81,7 @@ fun CandleChart(
                 ) {
                     val lows = candles.minOf { it.low }
                     val highs = candles.maxOf { it.high }
-                    val extra = listOf(entry, sl, tp).filter { it > 0 }
+                    val extra = listOf(entry, sl, tp, support, resistance, bidWall, askWall).filter { it > 0 }
                     val lo = (listOf(lows) + extra).min()
                     val hi = (listOf(highs) + extra).max()
                     val span = (hi - lo).let { if (it <= 0) 1.0 else it }

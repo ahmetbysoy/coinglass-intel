@@ -19,8 +19,10 @@ class ScoreWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx,
         val app = applicationContext as IntelApp
         val db = AppDb.get(applicationContext)
         val settings = SettingsStore(applicationContext).flow.first()
-        val snaps = WatchlistScanner(app.restClient, db).scanAll()
-        if (settings.notificationsEnabled) {
+        WatchlistScanner(app.restClient, db).scanAll()
+        // Foreground service is the notifier when running; worker only fills Room.
+        if (settings.notificationsEnabled && !settings.serviceEnabled) {
+            val snaps = db.snap().all()
             for (s in snaps) {
                 if (abs(s.score) >= settings.scoreAlertAbs) {
                     AlertNotifier.scoreAlert(applicationContext, s.symbol, s.score, s.direction, s.price)

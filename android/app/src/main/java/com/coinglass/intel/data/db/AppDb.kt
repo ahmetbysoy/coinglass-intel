@@ -5,10 +5,15 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [WatchEntity::class, ScoreSnapEntity::class], version = 1, exportSchema = false)
+@Database(
+    entities = [WatchEntity::class, ScoreSnapEntity::class, OutcomeEntity::class],
+    version = 2,
+    exportSchema = false,
+)
 abstract class AppDb : RoomDatabase() {
     abstract fun watch(): WatchDao
     abstract fun snap(): SnapDao
+    abstract fun outcome(): OutcomeDao
 
     companion object {
         @Volatile private var inst: AppDb? = null

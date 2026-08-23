@@ -85,14 +85,20 @@ object MarketScorer {
             weights["Vol"] = weights.getValue("Vol") + 3
             weights["Mom"] = weights.getValue("Mom") + 3
         }
+        WeightCalibrator.apply(weights, feed.weightBoost)
         val tws = weights.values.sum().let { if (it == 0.0) 1.0 else it }
         for (k in weights.keys.toList()) weights[k] = weights.getValue(k) / tws * 100.0
 
         val closes5 = feed.klines5m.sortedBy { it.openTime }.map { it.close }
+        val vols5 = feed.klines5m.sortedBy { it.openTime }.map { it.volume }
         val cvdSeries = Scalper.buildCvdSeries(feed.takerHist, if (price > 0) price else 1.0)
         val divergence = if (closes5.isNotEmpty() && cvdSeries.isNotEmpty()) {
-            Scalper.detectCvdDivergence(closes5, cvdSeries)
+            Scalper.detectCvdDivergence(closes5, cvdSeries, vols5)
         } else mapOf("divergence" to false, "type" to null, "strength" to 0.0)
+        val struct = Structure.from(
+            feed.klines1h.ifEmpty { feed.klines5m },
+            feed.orderBooks["binance"] ?: feed.orderBooks.values.firstOrNull(),
+        )
 
         val oiScore = Curves.oiScore(oiChgPct, chg24)
         val fundingScore = max(min(-fundingAvg * 10_000.0, 100.0), -100.0)
@@ -147,8 +153,10 @@ object MarketScorer {
         }
 
         val risk = Curves.riskScore(atrPct, fundingAvg, lsAvg, vol24)
-        val spoof = analyzeSpoof(feed, lsAvg, aggImb)
-        val strat = generateStrategy(price, direction, atrPct, fundingAvg, lsAvg, aggImb, total)
+        val snapSpoof = analyzeSpoof(feed, lsAvg, aggImb)
+        val histSpoof = Structure.spoofFromHistory(feed.bookHistory)
+        val spoof = min(100, max(snapSpoof / 2, histSpoof))
+        val strat = generateStrategy(price, direction, atrPct, fundingAvg, lsAvg, aggImb, total, struct)
 
         fun sig(raw: Double) = SimpleSignal(
             directionalScore = max(min(raw / 100.0, 1.0), -1.0),
@@ -221,6 +229,13 @@ object MarketScorer {
             liqLong = feed.liveLiqLong,
             liqShort = feed.liveLiqShort,
             rsi5m = mom["5m"]?.get("rsi") ?: 50.0,
+            liqSeen = feed.liqSeen,
+            restErrors = feed.restErrors,
+            support = struct.support,
+            resistance = struct.resistance,
+            bidWall = struct.bidWall,
+            askWall = struct.askWall,
+            slReason = strat.reason,
         )
     }
 
@@ -249,7 +264,7 @@ object MarketScorer {
         return min(spoof, 100)
     }
 
-    private data class Strat(val strategy: String, val warnings: List<String>, val sl: Double, val tp: Double)
+    private data class Strat(val strategy: String, val warnings: List<String>, val sl: Double, val tp: Double, val reason: String)
 
     private fun generateStrategy(
         price: Double,
@@ -259,8 +274,9 @@ object MarketScorer {
         lsAvg: Double,
         imb: Double,
         totalScore: Double,
+        structure: StructureLevels,
     ): Strat {
-        val lv = Curves.slTp(price, direction, atrPct, totalScore)
+        val lv = Curves.slTp(price, direction, atrPct, totalScore, structure)
         val sl = lv.sl
         val tp = lv.tp
         val slPct = lv.slPct
@@ -280,7 +296,8 @@ object MarketScorer {
         if (lsAvg > 2) warns += "L/S ${"%.2f".format(lsAvg)} yuksek — long cascade riski"
         if (imb > 30) warns += "OB bid agirligi +${"%.1f".format(imb)}%"
         if (imb < -30) warns += "OB ask agirligi ${"%.1f".format(imb)}%"
-        return Strat(strategy, warns, sl, tp)
+        if (lv.reason.isNotBlank()) warns += "SL/TP kaynak: ${lv.reason}"
+        return Strat(strategy, warns, sl, tp, lv.reason)
     }
 
     private val ensembleWeights = mapOf(

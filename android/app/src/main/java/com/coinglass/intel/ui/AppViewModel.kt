@@ -10,11 +10,14 @@ import com.coinglass.intel.alert.AlertService
 import com.coinglass.intel.data.db.AppDb
 import com.coinglass.intel.data.db.ScoreSnapEntity
 import com.coinglass.intel.data.db.WatchEntity
+import com.coinglass.intel.data.outcome.OutcomeTracker
 import com.coinglass.intel.data.repo.MarketRepository
 import com.coinglass.intel.data.settings.SettingsStore
 import com.coinglass.intel.data.settings.UserSettings
 import com.coinglass.intel.domain.Symbols
+import com.coinglass.intel.domain.model.HitRate
 import com.coinglass.intel.domain.model.IntelUiState
+import com.coinglass.intel.data.db.OutcomeEntity
 import com.coinglass.intel.work.ScoreWorker
 import com.coinglass.intel.work.WatchlistScanner
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,6 +33,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val settingsStore = SettingsStore(app)
     private val repo = MarketRepository(intel.wsClient, intel.restClient, viewModelScope)
     private val scanner = WatchlistScanner(intel.restClient, db)
+    private val tracker = OutcomeTracker(db)
 
     val settings: StateFlow<UserSettings> = settingsStore.flow.stateIn(
         viewModelScope, SharingStarted.Eagerly, UserSettings(),
@@ -40,13 +44,27 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val snaps: StateFlow<List<ScoreSnapEntity>> = db.snap().observe().stateIn(
         viewModelScope, SharingStarted.Eagerly, emptyList(),
     )
-    val live: StateFlow<IntelUiState> = combine(repo.state, watchlist, settings) { st, w, cfg ->
+    private val hit = MutableStateFlow(HitRate())
+    val outcomes: StateFlow<List<OutcomeEntity>> = db.outcome().observe(80).stateIn(
+        viewModelScope, SharingStarted.Eagerly, emptyList(),
+    )
+    val compare = MutableStateFlow<List<String>>(emptyList())
+
+    val live: StateFlow<IntelUiState> = combine(repo.state, watchlist, settings, hit) { st, w, cfg, h ->
         val chips = w.map { it.symbol }
-        val age = if (st.lastUpdateMs == 0L) Long.MAX_VALUE else System.currentTimeMillis() - st.lastUpdateMs
+        val lim = cfg.staleSeconds * 1000L
+        val nowMs = System.currentTimeMillis()
+        fun stale(ms: Long) = ms > 0 && nowMs - ms > lim
         st.copy(
             chips = chips,
             inWatchlist = st.symbol.isNotBlank() && chips.contains(st.symbol),
-            stale = st.symbol.isNotBlank() && st.lastUpdateMs > 0 && age > cfg.staleSeconds * 1000L,
+            stale = st.symbol.isNotBlank() && st.lastUpdateMs > 0 && nowMs - st.lastUpdateMs > lim,
+            hit = h,
+            restErrors = st.restErrors,
+            liqSeen = st.liqSeen,
+            fresh = st.fresh.copy(
+                priceMs = if (stale(st.fresh.priceMs)) st.fresh.priceMs else st.fresh.priceMs,
+            ),
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, IntelUiState())
 
@@ -69,6 +87,25 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 now.value = System.currentTimeMillis()
             }
         }
+        viewModelScope.launch {
+            repo.state.collect { st ->
+                val r = st.report ?: return@collect
+                tracker.record(r)
+                tracker.settle(r.symbol, r.price)
+                hit.value = tracker.hitRate(r.symbol)
+                repo.setBoost(tracker.alignedBoost())
+            }
+        }
+    }
+
+    fun toggleCompare(symbol: String) {
+        val cur = compare.value.toMutableList()
+        if (symbol in cur) cur.remove(symbol)
+        else {
+            if (cur.size >= 2) cur.removeAt(0)
+            cur += symbol
+        }
+        compare.value = cur
     }
 
     fun submit(raw: String) {

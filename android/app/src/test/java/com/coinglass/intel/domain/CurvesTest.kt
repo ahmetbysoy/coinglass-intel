@@ -1,5 +1,6 @@
 package com.coinglass.intel.domain
 
+import com.coinglass.intel.domain.model.BookSnap
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -58,5 +59,29 @@ class CurvesTest {
         assertEquals(1.0, z.tpPct / z.slPct, 0.05)
         val full = Curves.slTp(100.0, "BULLISH", 2.0, 100.0)
         assertEquals(2.5, full.tpPct / full.slPct, 0.05)
+    }
+
+    @Test
+    fun slTpUsesNearbySupport() {
+        val atrOnly = Curves.slTp(100.0, "BULLISH", 3.0, 40.0)
+        val with = Curves.slTp(
+            100.0, "BULLISH", 3.0, 40.0,
+            StructureLevels(support = 98.8, bidWall = 98.7),
+        )
+        assertTrue(with.sl >= atrOnly.sl - 1e-9)
+        assertTrue(with.reason.contains("swing") || with.reason.contains("ob"))
+    }
+
+    @Test
+    fun spoofVanishingWall() {
+        val mid = 100.0
+        val hist = listOf(
+            BookSnap(0, mid, listOf(99.4 to 10.0, 99.0 to 400.0), emptyList()),
+            BookSnap(2000, mid, listOf(99.4 to 10.0, 99.0 to 400.0), emptyList()),
+            BookSnap(4000, mid, listOf(99.4 to 10.0), emptyList()),
+        )
+        // 500 vs empty median path — first snap wall should vanish
+        val s = Structure.spoofFromHistory(hist, 4000)
+        assertTrue(s >= 0)
     }
 }

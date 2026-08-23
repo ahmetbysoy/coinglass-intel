@@ -33,6 +33,31 @@ data class TakerBar(
     val sellVol: Double,
 )
 
+data class BookSnap(
+    val ts: Long,
+    val mid: Double,
+    val bidWalls: List<Pair<Double, Double>>,
+    val askWalls: List<Pair<Double, Double>>,
+)
+
+data class HitRate(
+    val n: Int = 0,
+    val wins: Int = 0,
+    val rate: Double = 0.0,
+    val horizon: String = "15m",
+) {
+    val line: String
+        get() = if (n == 0) "isabet: veri yok (henuz settle yok)"
+        else "bu tahmin gecmiste %${(rate * 100).toInt()} isabetli (n=$n, $horizon)"
+}
+
+data class SourceFresh(
+    val priceMs: Long = 0L,
+    val oiMs: Long = 0L,
+    val fundMs: Long = 0L,
+    val obMs: Long = 0L,
+)
+
 data class OrderBook(
     val bids: List<Pair<Double, Double>>,
     val asks: List<Pair<Double, Double>>,
@@ -63,6 +88,10 @@ data class ScoreInput(
     val klines4h: List<Candle> = emptyList(),
     val liveLiqLong: Double = 0.0,
     val liveLiqShort: Double = 0.0,
+    val liqSeen: Boolean = false,
+    val restErrors: List<String> = emptyList(),
+    val bookHistory: List<BookSnap> = emptyList(),
+    val weightBoost: Map<String, Double> = emptyMap(),
 )
 
 data class SimpleSignal(
@@ -111,6 +140,14 @@ data class V4Report(
     val liqLong: Double = 0.0,
     val liqShort: Double = 0.0,
     val rsi5m: Double = 50.0,
+    val liqSeen: Boolean = false,
+    val restErrors: List<String> = emptyList(),
+    val support: Double = 0.0,
+    val resistance: Double = 0.0,
+    val bidWall: Double = 0.0,
+    val askWall: Double = 0.0,
+    val slReason: String = "",
+    val hit: HitRate = HitRate(),
 )
 
 data class LaneStats(

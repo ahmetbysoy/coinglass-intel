@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShowChart
@@ -20,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coinglass.intel.ui.AppViewModel
 import com.coinglass.intel.ui.IntelScreen
+import com.coinglass.intel.ui.PerformanceScreen
 import com.coinglass.intel.ui.ScannerScreen
 import com.coinglass.intel.ui.SettingsScreen
 import com.coinglass.intel.ui.theme.CoinGlassTheme
@@ -37,6 +39,8 @@ class MainActivity : ComponentActivity() {
             val snaps by vm.snaps.collectAsStateWithLifecycle()
             val scanning by vm.scanning.collectAsStateWithLifecycle()
             val now by vm.now.collectAsStateWithLifecycle()
+            val compare by vm.compare.collectAsStateWithLifecycle()
+            val outcomes by vm.outcomes.collectAsStateWithLifecycle()
             CoinGlassTheme(dark = settings.darkTheme) {
                 Scaffold(
                     bottomBar = {
@@ -56,6 +60,12 @@ class MainActivity : ComponentActivity() {
                             NavigationBarItem(
                                 selected = tab == 2,
                                 onClick = { vm.selectTab(2) },
+                                icon = { Icon(Icons.Default.Info, contentDescription = "isabet") },
+                                label = { Text("Isabet") },
+                            )
+                            NavigationBarItem(
+                                selected = tab == 3,
+                                onClick = { vm.selectTab(3) },
                                 icon = { Icon(Icons.Default.Settings, contentDescription = "ayarlar") },
                                 label = { Text("Ayarlar") },
                             )
@@ -69,14 +79,17 @@ class MainActivity : ComponentActivity() {
                                 scanning = scanning,
                                 staleSec = settings.staleSeconds,
                                 now = now,
+                                compare = compare,
                                 onOpen = { sym ->
                                     vm.submit(sym)
                                     vm.selectTab(0)
                                 },
                                 onRemove = { vm.removeWatch(it) },
                                 onRefresh = { vm.refreshScanner() },
+                                onCompare = { vm.toggleCompare(it) },
                             )
-                            2 -> SettingsScreen(
+                            2 -> PerformanceScreen(outcomes)
+                            3 -> SettingsScreen(
                                 s = settings,
                                 onChange = { vm.updateSettings(it) },
                                 onToggleService = { vm.toggleService(it) },
