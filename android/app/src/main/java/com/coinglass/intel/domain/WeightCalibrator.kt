@@ -31,7 +31,7 @@ object WeightCalibrator {
             "Funding" to "funding_signal",
             "Liq" to "liq_pressure",
             "Vol" to "volume_signal",
-            "Mom" to "volume_signal",
+            "Mom" to "momentum",
         )
         val out = mutableMapOf<String, Double>()
         for ((k, sig) in map) {

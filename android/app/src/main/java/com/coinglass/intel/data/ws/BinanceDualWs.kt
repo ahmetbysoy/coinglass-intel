@@ -35,7 +35,7 @@ import java.util.concurrent.atomic.AtomicLong
 /**
  * Binance USD-M 2026 split:
  *   /public  → @trade + @depth20@100ms
- *   /market  → @kline_1m @kline_5m @markPrice@1s @forceOrder
+ *   /market  → @kline_1m @kline_3m @kline_5m @kline_15m @markPrice@1s @forceOrder
  *
  * Official excerpt omits @trade; live test (2026-08-23) shows @trade only on /public.
  */

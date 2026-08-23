@@ -159,8 +159,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun toggleChartTf() {
-        repo.toggleChartTf()
+    fun selectChartTf(tf: String) {
+        repo.setChartTf(tf)
     }
 
     fun selectTab(i: Int) {

@@ -4,6 +4,7 @@ import com.coinglass.intel.data.rest.ExchangeRest
 import com.coinglass.intel.data.ws.BinanceDualWs
 import com.coinglass.intel.data.ws.CoinGlassLiqWs
 import com.coinglass.intel.domain.Analyzers
+import com.coinglass.intel.domain.ChartSeries
 import com.coinglass.intel.domain.MarketScorer
 import com.coinglass.intel.domain.Symbols
 import com.coinglass.intel.domain.model.BookSnap
@@ -257,10 +258,10 @@ class MarketRepository(
             liveFunding != 0.0 -> listOf(liveFunding) + (base?.fundingRates ?: emptyList())
             else -> base?.fundingRates.orEmpty()
         }
-        val c1 = if (k1.isNotEmpty()) k1.values.toList() else base?.klines1m.orEmpty()
-        val c3 = if (k3.isNotEmpty()) k3.values.toList() else base?.klines3m.orEmpty()
-        val c5 = if (k5.isNotEmpty()) k5.values.toList() else base?.klines5m.orEmpty()
-        val c15 = if (k15.isNotEmpty()) k15.values.toList() else base?.klines15m.orEmpty()
+        val c1 = ChartSeries.merge(base?.klines1m.orEmpty(), k1.values)
+        val c3 = ChartSeries.merge(base?.klines3m.orEmpty(), k3.values)
+        val c5 = ChartSeries.merge(base?.klines5m.orEmpty(), k5.values)
+        val c15 = ChartSeries.merge(base?.klines15m.orEmpty(), k15.values)
 
         val input = ScoreInput(
             symbol = symbol,

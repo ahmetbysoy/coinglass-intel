@@ -179,7 +179,7 @@ fun IntelScreen(vm: AppViewModel) {
             val r = state.report
             PriceCard(state, r)
             Spacer(Modifier.height(10.dp))
-            StrategyCard(r, state.hit.line)
+            StrategyCard(r, state.hit.line, state.chartTf)
             Spacer(Modifier.height(10.dp))
             ScoreCard(r)
             Spacer(Modifier.height(10.dp))
@@ -196,8 +196,8 @@ fun IntelScreen(vm: AppViewModel) {
                 entry = r?.price ?: 0.0,
                 sl = r?.sl ?: 0.0,
                 tp = r?.tp ?: 0.0,
-                label = state.chartTf,
-                onToggle = { vm.toggleChartTf() },
+                chartTf = state.chartTf,
+                onSelectTf = { vm.selectChartTf(it) },
                 support = r?.support ?: 0.0,
                 resistance = r?.resistance ?: 0.0,
                 bidWall = r?.bidWall ?: 0.0,
@@ -320,7 +320,7 @@ private fun ScoreCard(r: V4Report?) {
 }
 
 @Composable
-private fun StrategyCard(r: V4Report?, hitLine: String) {
+private fun StrategyCard(r: V4Report?, hitLine: String, chartTf: String) {
     Card {
         Text("STRATEJİ", color = Mute, fontSize = 11.sp, letterSpacing = 0.8.sp)
         Spacer(Modifier.height(4.dp))
@@ -334,7 +334,7 @@ private fun StrategyCard(r: V4Report?, hitLine: String) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Mini("SL", fmtPrice(r.sl))
                 Mini("TP", fmtPrice(r.tp))
-                Mini("RSI 5m", "%.1f".format(r.rsi5m))
+                Mini("RSI $chartTf", "%.1f".format(r.rsiTf[chartTf] ?: r.rsi5m))
             }
         }
     }
@@ -531,6 +531,7 @@ private fun Onboard() {
         Glossary("spoof", "kitapta durmayan sahte duvar; 50+ ise SL o duvari kullanmaz")
         Glossary("confluence", "timeframe oylari + hareket buyuklugu")
         Glossary("netRR", "TP/SL eksi fee ve yakin funding maliyeti")
+        Glossary("grafik", "1m/3m/5m/15m chip; 600 mum REST seed, WS ezmez; ekranda son 90")
     }
 }
 

@@ -1,8 +1,9 @@
 """v4.3 component scoring using continuous curves."""
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 from .curves import (
     direction_of,
@@ -12,6 +13,24 @@ from .curves import (
     rsi_signal,
     sl_tp,
 )
+
+# Lockstep with MarketScorer.kt — chart TFs only (1h ATR fallback is Android-only).
+TF_WEIGHTS = {"1m": 0.15, "3m": 0.20, "5m": 0.30, "15m": 0.35}
+
+
+def confluence(tf_ret_atr: Dict[str, Tuple[float, float]]) -> float:
+    """tanh(ret/atr) magnitude vote across 1m/3m/5m/15m."""
+    wv = 0.0
+    tw = 0.0
+    for name, w in TF_WEIGHTS.items():
+        pair = tf_ret_atr.get(name)
+        if not pair:
+            continue
+        ret, atr = pair
+        atr = max(atr, 0.15)
+        wv += w * math.tanh(ret / atr)
+        tw += w
+    return 0.0 if tw == 0.0 else (wv / tw) * 10.0
 
 
 @dataclass

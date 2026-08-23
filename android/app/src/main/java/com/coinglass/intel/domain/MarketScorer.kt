@@ -47,11 +47,13 @@ object MarketScorer {
         val hasOiChg = Analyzers.oiChange(feed.oiHist) != null
 
         val mom = mutableMapOf<String, Map<String, Double>>()
+        Indicators.candleMetrics(feed.klines1m, "1m")?.let { mom["1m"] = it }
+        Indicators.candleMetrics(feed.klines3m, "3m")?.let { mom["3m"] = it }
         Indicators.candleMetrics(feed.klines5m, "5m")?.let { mom["5m"] = it }
         Indicators.candleMetrics(feed.klines15m, "15m")?.let { mom["15m"] = it }
         Indicators.candleMetrics(feed.klines1h, "1h")?.let { mom["1h"] = it }
 
-        val tfW = mapOf("5m" to 0.25, "15m" to 0.35, "1h" to 0.40)
+        val tfW = mapOf("1m" to 0.15, "3m" to 0.20, "5m" to 0.30, "15m" to 0.35)
         var wv = 0.0
         var tw = 0.0
         for ((name, w) in tfW) {
@@ -62,7 +64,7 @@ object MarketScorer {
             tw += w
         }
         val confluence = if (tw == 0.0) 0.0 else (wv / tw) * 10.0
-        val atrPct = mom["15m"]?.get("atr_pct") ?: mom["1h"]?.get("atr_pct") ?: 0.0
+        val atrPct = mom["15m"]?.get("atr_pct") ?: mom["5m"]?.get("atr_pct") ?: mom["1h"]?.get("atr_pct") ?: 0.0
         val atrHist = feed.klines15m.mapNotNull {
             val tr = it.high - it.low
             if (it.close > 0) tr / it.close * 100.0 else null
@@ -75,7 +77,7 @@ object MarketScorer {
             "funding_quality" to if (fund != null) 50.0 else 10.0,
             "ls_ratio_quality" to if (hasLs) 40.0 else 10.0,
             "volume_quality" to if (vol24 > 1_000_000) 90.0 else 30.0,
-            "momentum_quality" to if (mom["5m"] != null) 75.0 else 10.0,
+            "momentum_quality" to if (mom["5m"] != null || mom["1m"] != null) 75.0 else 10.0,
         )
         val weights = Scalper.qualityWeights(quality)
         if (vol24 < 10_000_000) {
@@ -116,7 +118,7 @@ object MarketScorer {
         }
 
         val momParts = mutableListOf<Double>()
-        for (tfName in listOf("5m", "15m", "1h")) {
+        for (tfName in listOf("1m", "3m", "5m", "15m")) {
             val mm = mom[tfName] ?: continue
             val rsiSig = Curves.rsiSignal(mm["rsi"] ?: 50.0)
             momParts += (rsiSig + max(min((mm["ret_3"] ?: 0.0) * 10, 50.0), -50.0)) / 2.0
@@ -181,6 +183,7 @@ object MarketScorer {
             "ob_imbalance" to sig(aggImb),
             "volume_signal" to sig(volScore),
             "whale_flow" to sig(cvdPct),
+            "momentum" to sig(momScore),
         )
         val tfPreds = ensembleTf(signals, WeightCalibrator.toEnsemble(weights))
 
@@ -217,6 +220,7 @@ object MarketScorer {
             strategyWarnings = strat.warnings,
             forecasts = mapOf(
                 "1m" to momScore * 0.03,
+                "3m" to momScore * 0.04,
                 "5m" to momScore * 0.05,
                 "15m" to momScore * 0.1 + volScore * 0.05,
             ),
@@ -239,7 +243,10 @@ object MarketScorer {
             atrPct = atrPct,
             liqLong = feed.liveLiqLong,
             liqShort = feed.liveLiqShort,
-            rsi5m = mom["5m"]?.get("rsi") ?: 50.0,
+            rsi5m = mom["5m"]?.get("rsi") ?: mom["1m"]?.get("rsi") ?: 50.0,
+            rsiTf = listOf("1m", "3m", "5m", "15m").mapNotNull { tf ->
+                mom[tf]?.get("rsi")?.let { tf to it }
+            }.toMap(),
             liqSeen = feed.liqSeen,
             restErrors = feed.restErrors,
             support = struct.support,
@@ -319,14 +326,22 @@ object MarketScorer {
         "1m" to mapOf(
             "oi_momentum" to 0.6, "funding_signal" to 0.3, "liq_pressure" to 0.8,
             "ob_imbalance" to 1.5, "volume_signal" to 1.2, "whale_flow" to 1.4,
+            "momentum" to 1.3,
+        ),
+        "3m" to mapOf(
+            "oi_momentum" to 0.8, "funding_signal" to 0.5, "liq_pressure" to 1.0,
+            "ob_imbalance" to 1.3, "volume_signal" to 1.1, "whale_flow" to 1.2,
+            "momentum" to 1.15,
         ),
         "5m" to mapOf(
             "oi_momentum" to 1.0, "funding_signal" to 0.7, "liq_pressure" to 1.2,
             "ob_imbalance" to 1.0, "volume_signal" to 1.0, "whale_flow" to 1.0,
+            "momentum" to 1.0,
         ),
         "15m" to mapOf(
             "oi_momentum" to 1.4, "funding_signal" to 1.3, "liq_pressure" to 1.0,
             "ob_imbalance" to 0.6, "volume_signal" to 0.9, "whale_flow" to 0.7,
+            "momentum" to 0.85,
         ),
     )
 
@@ -342,14 +357,15 @@ object MarketScorer {
 
     private fun ensembleTf(signals: Map<String, SimpleSignal>, weights: Map<String, Double>): List<TfPred> {
         val base = if (weights.isEmpty()) mapOf(
-            "oi_momentum" to 0.20,
-            "funding_signal" to 0.15,
-            "liq_pressure" to 0.20,
-            "ob_imbalance" to 0.15,
-            "volume_signal" to 0.15,
-            "whale_flow" to 0.15,
+            "oi_momentum" to 0.18,
+            "funding_signal" to 0.12,
+            "liq_pressure" to 0.18,
+            "ob_imbalance" to 0.14,
+            "volume_signal" to 0.13,
+            "whale_flow" to 0.13,
+            "momentum" to 0.12,
         ) else weights
-        return listOf("1m", "5m", "15m").map { tf ->
+        return listOf("1m", "3m", "5m", "15m").map { tf ->
             val mods = tfMods[tf] ?: emptyMap()
             var ws = 0.0
             var wt = 0.0
@@ -369,6 +385,7 @@ object MarketScorer {
             }
             val confMul = when (tf) {
                 "1m" -> 0.75
+                "3m" -> 0.82
                 "5m" -> 0.90
                 else -> 1.0
             }
@@ -381,6 +398,7 @@ object MarketScorer {
             val conf = min(agr * confMul, 0.95)
             val emMul = when (tf) {
                 "1m" -> 0.05
+                "3m" -> 0.09
                 "5m" -> 0.15
                 else -> 0.35
             }

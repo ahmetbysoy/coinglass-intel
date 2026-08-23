@@ -7,7 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from engine.market_score import mom_from_rsi_and_ret, score_components  # noqa: E402
+from engine.market_score import confluence, mom_from_rsi_and_ret, score_components  # noqa: E402
 
 
 class ScoreWireTests(unittest.TestCase):
@@ -40,6 +40,15 @@ class ScoreWireTests(unittest.TestCase):
         a = mom_from_rsi_and_ret(69.5, 0)
         b = mom_from_rsi_and_ret(70.5, 0)
         self.assertLess(abs(a - b), 3.0)
+
+    def test_confluence_uses_1m_3m(self):
+        flat = {"5m": (0.0, 1.0), "15m": (0.0, 1.0)}
+        fast = dict(flat, **{"1m": (4.0, 0.8), "3m": (3.0, 0.9)})
+        self.assertGreater(confluence(fast), confluence(flat) + 1.0)
+        self.assertGreater(confluence(fast), 0.0)
+        # 1h must not participate
+        with_1h = dict(flat, **{"1h": (9.0, 0.5)})
+        self.assertAlmostEqual(confluence(flat), confluence(with_1h), places=6)
 
     def test_high_risk_hits_100(self):
         b = score_components(

@@ -2,17 +2,25 @@
 
 Native Kotlin / Jetpack Compose telefon istihbaratı.
 
-Sembol **hardcode değil**. Watchlist = senin yazdığın pair (Room).
+Sembol **hardcode değil**. Watchlist = senin yazdığın pair (Room). İlk açılışta öneri çipi yok.
 
 ## Grafik
 
-Sadece **1m / 3m / 5m / 15m**. Dokunarak döner.
+Sadece **1m / 3m / 5m / 15m**. Chip'e dokun, seç.
 
-Sembol değişince REST **600 mum** çeker (Binance `limit=600`), sonra WS canlı günceller. Boş grafik kalmaz.
+Sembol değişince REST **600 mum** çeker. WS ilk mumu gelince o 600'ü **ezmez** — aynı timestamp'te canlı bar kazanır, gerisi REST seed kalır.
+
+Ekranda son **90 mum** + hacim şeridi çizilir (600'ü 160dp'ye sıkıştırmak leke oluyordu). VAL/VAH ve duvar çizgileri üstte.
+
+## Skor
+
+Confluence ve momentum artık **1m + 3m + 5m + 15m**. 1h sadece ATR yedek (grafikte yok).
+
+Ensemble satırı da 1m/3m/5m/15m. `Mom` ağırlığı `volume_signal`'e karışmıyor — ayrı `momentum` sinyali.
 
 ## Para kaybettiren bug (düzeltildi)
 
-Spoof skoru **50+** ise `bidWall`/`askWall` SL/TP’ye **girmez** — sadece ATR + volume-area (VAL/VAH).
+Spoof skoru **50+** ise `bidWall`/`askWall` SL/TP'ye **girmez** — sadece ATR + volume-area (VAL/VAH).
 
 `netRR = (tp − fee − yakın funding) / (sl + fee)`  fee ≈ 0.08% round-trip.
 
@@ -22,7 +30,7 @@ Spoof skoru **50+** ise `bidWall`/`askWall` SL/TP’ye **girmez** — sadece ATR
 - 8–29: yarı güç
 - ≥ 30: tam `tanh` boost
 
-Aynı ağırlık haritası hem ana skor hem `ensembleTf` (1m/5m/15m) için kullanılır.
+Aynı ağırlık haritası hem ana skor hem `ensembleTf` için kullanılır.
 
 ## Sinyal
 
@@ -41,7 +49,7 @@ Aynı ağırlık haritası hem ana skor hem `ensembleTf` (1m/5m/15m) için kulla
 | İsabet | WR + expectancy + R-multiple |
 | Ayarlar | bildirim, FGS, tema, eşikler |
 
-Watchlist `<` `>` ile klavyesiz geçiş. Funding kalan süre `FUND η`.
+Watchlist `<` `>` ile klavyesiz geçiş. Funding kalan süre `FUND η`. RSI seçili TF'ye göre.
 
 ## Ağ
 
