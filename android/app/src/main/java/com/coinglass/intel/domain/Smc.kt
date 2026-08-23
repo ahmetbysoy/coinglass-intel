@@ -144,7 +144,7 @@ object Smc {
                 h > 0 && abs(h - hi) / hi <= EQUAL_TOL
             }
             if (peers.size < 2) continue
-            val lastPeer = peers.max()
+            val lastPeer = peers.maxOrNull() ?: continue
             val level = peers.maxOf { bars[it].high }
             for (k in lastPeer + 1 until n) {
                 val c = bars[k]
@@ -170,7 +170,7 @@ object Smc {
                 l > 0 && abs(l - lo) / lo <= EQUAL_TOL
             }
             if (peers.size < 2) continue
-            val lastPeer = peers.max()
+            val lastPeer = peers.maxOrNull() ?: continue
             val level = peers.minOf { bars[it].low }
             for (k in lastPeer + 1 until n) {
                 val c = bars[k]
@@ -188,7 +188,10 @@ object Smc {
                 }
             }
         }
-        return out
+        return listOfNotNull(
+            out.filter { it.side == "bear" }.maxByOrNull { it.endIdx },
+            out.filter { it.side == "bull" }.maxByOrNull { it.endIdx },
+        )
     }
 
     private fun firstOverlap(

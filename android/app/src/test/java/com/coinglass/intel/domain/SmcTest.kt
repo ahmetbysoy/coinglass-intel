@@ -56,7 +56,7 @@ class SmcTest {
             bar(1.0, 9.0, 10.0, 8.0, 9.5),
             bar(2.0, 9.5, 11.0, 9.4, 10.8),
             bar(3.0, 12.2, 13.0, 12.1, 12.8),
-            bar(4.0, 12.0, 12.3, 11.5, 11.6),
+            bar(4.0, 11.2, 11.8, 10.5, 10.8),
         )
         val z = Smc.analyze(bars).fvgs.single()
         assertTrue(z.touched)
@@ -110,29 +110,31 @@ class SmcTest {
     @Test
     fun sweepWickAboveEqualHighClosesInside() {
         val noise = (1..15).map { i ->
-            bar(i.toDouble(), 50.0, 50.5, 49.5, 50.1)
+            bar(i.toDouble(), 40.0, 40.0 + i * 0.25, 39.4, 40.05)
         }
         val e1 = bar(16.0, 50.2, 51.0, 50.0, 50.3)
         val e2 = bar(17.0, 50.1, 51.0, 50.0, 50.2)
         val wick = bar(18.0, 50.5, 51.4, 50.1, 50.4)
         val r = Smc.analyze(noise + e1 + e2 + wick)
         val s = r.sweeps.firstOrNull { it.side == "bear" }
-        assertTrue(s != null)
-        assertTrue(s!!.high >= 51.4 - 1e-9)
-        assertTrue(s.low <= 51.0 + 1e-9)
-        assertEquals(17, s.endIdx)
+        assertTrue("bear sweep missing", s != null)
+        assertEquals(17, s!!.endIdx)
+        assertEquals(51.4, s.high, 1e-9)
+        assertEquals(51.0, s.low, 1e-9)
     }
 
     @Test
     fun sweepWickBelowEqualLowClosesInside() {
-        val base = (1..16).map { i ->
-            bar(i.toDouble(), 100.0, 100.1, 99.96, 100.0)
+        val noise = (1..15).map { i ->
+            bar(i.toDouble(), 60.0, 60.6, 60.0 - i * 0.2, 60.1)
         }
-        val e1 = bar(17.0, 100.05, 100.1, 100.0, 100.04)
-        val e2 = bar(18.0, 100.02, 100.08, 100.0, 100.03)
-        val wick = bar(19.0, 100.05, 100.15, 99.8, 100.06)
-        val r = Smc.analyze(base + e1 + e2 + wick)
-        assertTrue(r.sweeps.any { it.side == "bull" })
+        val e1 = bar(16.0, 50.4, 50.6, 50.0, 50.3)
+        val e2 = bar(17.0, 50.3, 50.5, 50.0, 50.2)
+        val wick = bar(18.0, 50.2, 50.4, 49.6, 50.15)
+        val r = Smc.analyze(noise + e1 + e2 + wick)
+        val s = r.sweeps.firstOrNull { it.side == "bull" }
+        assertTrue("bull sweep missing", s != null)
+        assertEquals(49.6, s!!.low, 1e-9)
     }
 
     @Test
