@@ -4,7 +4,10 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.coinglass.intel.domain.ChartHit
 import com.coinglass.intel.domain.ChartSeries
 import com.coinglass.intel.domain.LiqHeat
 import com.coinglass.intel.domain.Smc
@@ -78,9 +82,12 @@ fun CandleChart(
     var showOb by rememberSaveable { mutableStateOf(false) }
     var showFvg by rememberSaveable { mutableStateOf(false) }
     var showSweep by rememberSaveable { mutableStateOf(false) }
+    var showHeat by rememberSaveable { mutableStateOf(true) }
+    var hitIdx by remember { mutableIntStateOf(-1) }
     val shown = ChartSeries.visible(candles, window)
     val scroll = rememberScrollState()
     LaunchedEffect(shown.size, chartTf) { scroll.scrollTo(scroll.maxValue) }
+    LaunchedEffect(chartTf, candles.size) { hitIdx = -1 }
     val density = LocalDensity.current
     val barPx = with(density) { 7.dp.toPx() }
     val canvasW = with(density) { (shown.size * 7).dp }
@@ -130,7 +137,7 @@ fun CandleChart(
             OverlayChip("OB", showOb, scheme) { showOb = !showOb }
             OverlayChip("FVG", showFvg, scheme) { showFvg = !showFvg }
             OverlayChip("SWEEP", showSweep, scheme) { showSweep = !showSweep }
-            Text("heat on", color = scheme.onSurfaceVariant, fontSize = 10.sp, modifier = Modifier.padding(top = 6.dp))
+            OverlayChip("HEAT", showHeat, scheme) { showHeat = !showHeat }
         }
         Text(
             "entry ${fmtPrice(entry)}  sl ${fmtPrice(sl)}  tp ${fmtPrice(tp)}" +
@@ -156,10 +163,14 @@ fun CandleChart(
             if (shown.size < 2) {
                 Text("mum yok — sembol seç, 600 bar REST geliyor", color = scheme.onSurfaceVariant, fontSize = 12.sp, modifier = Modifier.padding(Space.md))
             } else {
-                Canvas(
+                Box(
                     Modifier
                         .width(canvasW)
-                        .height(chartHeight)
+                        .height(chartHeight),
+                ) {
+                Canvas(
+                    Modifier
+                        .fillMaxSize()
                         .padding(horizontal = 4.dp, vertical = 4.dp),
                 ) {
                     val volH = size.height * 0.20f
@@ -237,7 +248,7 @@ fun CandleChart(
                         val vh = (volH * (c.volume / maxVol).toFloat()).coerceAtLeast(1f)
                         drawRect(col.copy(alpha = 0.45f), Offset(x - bodyW / 2f, size.height - vh), Size(bodyW, vh))
                     }
-                    if (!heat.empty) {
+                    if (showHeat && !heat.empty) {
                         val strip = size.width * 0.14f
                         val left = size.width - strip
                         val maxU = heat.maxUsd
@@ -262,12 +273,49 @@ fun CandleChart(
                     if (entry > 0) drawLine(accent, Offset(0f, y(entry)), Offset(size.width, y(entry)), 2f)
                     if (sl > 0) drawLine(Bear, Offset(0f, y(sl)), Offset(size.width, y(sl)), 2f, pathEffect = dash)
                     if (tp > 0) drawLine(Warn, Offset(0f, y(tp)), Offset(size.width, y(tp)), 2f, pathEffect = dash)
+                    if (hitIdx in shown.indices) {
+                        val hx = slot * hitIdx + slot / 2f
+                        val hc = shown[hitIdx]
+                        drawLine(accent.copy(alpha = 0.85f), Offset(hx, 0f), Offset(hx, candleH), 1.3f)
+                        drawLine(accent.copy(alpha = 0.45f), Offset(0f, y(hc.close)), Offset(size.width, y(hc.close)), 1.2f, pathEffect = thin)
+                    }
+                }
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .pointerInput(shown.size) {
+                            detectTapGestures { off ->
+                                hitIdx = ChartHit.index(off.x, size.width, shown.size) ?: -1
+                            }
+                        }
+                        .pointerInput(shown.size) {
+                            detectDragGesturesAfterLongPress(
+                                onDragStart = { off ->
+                                    hitIdx = ChartHit.index(off.x, size.width, shown.size) ?: -1
+                                },
+                                onDrag = { change, _ ->
+                                    hitIdx = ChartHit.index(change.position.x, size.width, shown.size) ?: hitIdx
+                                    change.consume()
+                                },
+                            )
+                        },
+                )
                 }
             }
         }
+        val tip = if (hitIdx >= 0) ChartHit.tip(shown, hitIdx, heat) else null
+        if (tip != null) {
+            Spacer(Modifier.height(6.dp))
+            Text(
+                tip.line,
+                color = scheme.onSurface,
+                fontSize = 11.sp,
+                fontFamily = FontFamily.Monospace,
+            )
+        }
         Spacer(Modifier.height(6.dp))
         Text(
-            "pinch zoom · kaydir · VAL/VAH · SMC chip kapali" +
+            "tap / uzun bas-surukle crosshair · pinch zoom · kaydir" +
                 if (divergeType.isNotBlank()) " · CVD $divergeType" else "",
             color = scheme.onSurfaceVariant,
             fontSize = 10.sp,

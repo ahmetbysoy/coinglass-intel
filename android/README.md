@@ -1,1 +1,1 @@
-v1.10: Faz 3 — paper trade + calibrator. KAĞIT AÇ / oto, SL-TP-15dk, 120sn dedup.
+v1.11: Faz 7 — crosshair tap/drag, Heat chip, grafik 320dp.

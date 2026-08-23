@@ -29,7 +29,7 @@ Saklanacak farklılaşma: spoof≥50 duvarı SL yapmaz, `netRR` fee+funding dü�
 | Var | Yok / kırık |
 |---|---|
 | Compose 6 tab, Room watchlist/snap/outcome/dedup/discovery/paper | Crosshair / tap-fiyat |
-| Dual Binance WS + CG liq + Bybit/OKX BBO + SMC overlay | Crosshair / tap-fiyat |
+| Dual Binance WS + CG liq + Bybit/OKX BBO + SMC overlay + crosshair | Sembol bazlı çoklu alarm |
 | Verdict A–D, GİRME, netRR, SMC +8, pozisyon boyutu | Sembol bazlı çoklu alarm |
 | Liq heatmap (24 bin), DOM, VAL/VAH | Haftalık/aylık open + margin sim |
 | Radar = KEŞİF (ticker) + WATCHLIST | — |
@@ -158,9 +158,13 @@ Test: long 100 lev 10 → liq &lt; entry; session pencereleri.
 
 ### FAZ 7 — Grafik dokunuş
 
+**yapıldı** (v1.11) `ChartHit` + CandleChart overlay.
+
 - `pointerInput` tap/drag: `idx = x/slot`, tooltip `OHLC + time + liqBin`.
 - Grafik tab 320dp; Karar’da chart yok.
-- Chip: OB / FVG / Sweep / Heat. Default Heat açık (mevcut overlay), SMC kapalı.
+- Chip: OB / FVG / Sweep / Heat. Default Heat açık, SMC kapalı.
+
+Test: `ChartHitTest` — slot index, OHLC satır, liq bin.
 
 ---
 
