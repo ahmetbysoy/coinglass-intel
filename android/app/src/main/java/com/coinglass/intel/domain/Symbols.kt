@@ -10,24 +10,10 @@ data class SymbolInfo(
 )
 
 object Symbols {
-    val registry: Map<String, SymbolInfo> = mapOf(
-        "BTCUSDT" to info("BTC"),
-        "ETHUSDT" to info("ETH"),
-        "SOLUSDT" to info("SOL"),
-        "EDGEUSDT" to info("EDGE"),
-        "ALLOUSDT" to info("ALLO"),
-        "SPELLUSDT" to info("SPELL"),
-        "XAUTUSDT" to info("XAUT"),
-        "BLUAIUSDT" to info("BLUAI"),
-    )
-
-    val chips: List<String> = listOf(
-        "BTCUSDT", "ETHUSDT", "SOLUSDT", "ALLOUSDT", "EDGEUSDT", "SPELLUSDT",
-    )
-
     fun resolve(raw: String): SymbolInfo {
         val s = normalize(raw)
-        return registry[s] ?: info(s.removeSuffix("USDT")).copy(symbol = s, binance = s, bybit = s)
+        val base = base(s)
+        return info(base).copy(symbol = s, binance = s, bybit = s)
     }
 
     fun normalize(raw: String): String {
@@ -37,7 +23,7 @@ object Symbols {
             .replace("-", "")
             .replace("/", "")
             .trim()
-        if (s.isEmpty()) return "BTCUSDT"
+        if (s.isEmpty()) return ""
         if (s.endsWith("USDT") || s.endsWith("USDC")) return s
         if (s.endsWith("USD")) return s
         return s + "USDT"

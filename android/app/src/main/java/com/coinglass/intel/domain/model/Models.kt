@@ -60,6 +60,7 @@ data class ScoreInput(
     val klines5m: List<Candle>,
     val klines15m: List<Candle>,
     val klines1h: List<Candle>,
+    val klines4h: List<Candle> = emptyList(),
     val liveLiqLong: Double = 0.0,
     val liveLiqShort: Double = 0.0,
 )
@@ -126,13 +127,18 @@ data class ConnStats(
 )
 
 data class IntelUiState(
-    val symbol: String = "BTCUSDT",
-    val query: String = "BTCUSDT",
+    val symbol: String = "",
+    val query: String = "",
     val report: V4Report? = null,
     val conn: ConnStats = ConnStats(),
     val lastPrice: Double = 0.0,
     val lastUpdateMs: Long = 0L,
-    val loading: Boolean = true,
-    val statusLine: String = "baglaniyor…",
+    val loading: Boolean = false,
+    val statusLine: String = "sembol gir",
     val chips: List<String> = emptyList(),
+    val candles1h: List<Candle> = emptyList(),
+    val candles4h: List<Candle> = emptyList(),
+    val chartTf: String = "1h",
+    val stale: Boolean = false,
+    val inWatchlist: Boolean = false,
 )

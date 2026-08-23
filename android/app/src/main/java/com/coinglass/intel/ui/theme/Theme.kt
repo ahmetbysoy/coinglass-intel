@@ -44,7 +44,20 @@ private val Type = Typography(
     labelSmall = TextStyle(fontFamily = FontFamily.SansSerif, fontSize = 11.sp, letterSpacing = 0.6.sp, color = Mute),
 )
 
+private val LightScheme = lightColorScheme(
+    primary = Color(0xFF007A6A),
+    onPrimary = Color.White,
+    background = Color(0xFFF3F7F6),
+    onBackground = Color(0xFF102018),
+    surface = Color(0xFFFFFFFF),
+    onSurface = Color(0xFF102018),
+    surfaceVariant = Color(0xFFE4EEEC),
+    onSurfaceVariant = Color(0xFF4A5C58),
+    error = Bear,
+    outline = Color(0xFFC5D4D0),
+)
+
 @Composable
-fun CoinGlassTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = Scheme, typography = Type, content = content)
+fun CoinGlassTheme(dark: Boolean = true, content: @Composable () -> Unit) {
+    MaterialTheme(colorScheme = if (dark) Scheme else LightScheme, typography = Type, content = content)
 }

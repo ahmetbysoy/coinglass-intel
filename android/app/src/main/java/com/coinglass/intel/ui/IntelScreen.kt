@@ -14,10 +14,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -27,7 +25,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -72,8 +73,8 @@ import kotlin.math.max
 import kotlin.math.min
 
 @Composable
-fun IntelScreen(vm: IntelViewModel) {
-    val state by vm.state.collectAsStateWithLifecycle()
+fun IntelScreen(vm: AppViewModel) {
+    val state by vm.live.collectAsStateWithLifecycle()
     var query by remember(state.symbol) { mutableStateOf(state.symbol) }
     val focus = LocalFocusManager.current
 
@@ -81,12 +82,23 @@ fun IntelScreen(vm: IntelViewModel) {
         modifier = Modifier
             .fillMaxSize()
             .background(Bg)
-            .statusBarsPadding()
-            .navigationBarsPadding()
             .imePadding()
             .padding(horizontal = 16.dp),
     ) {
         Header(state)
+        if (state.stale) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "BAYAT VERİ",
+                color = Bg,
+                fontWeight = FontWeight.Black,
+                fontSize = 12.sp,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Warn)
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
+            )
+        }
         Spacer(Modifier.height(12.dp))
         OutlinedTextField(
             value = query,
@@ -108,6 +120,17 @@ fun IntelScreen(vm: IntelViewModel) {
                 cursorColor = Accent,
             ),
             shape = RoundedCornerShape(14.dp),
+            trailingIcon = {
+                if (state.symbol.isNotBlank()) {
+                    IconButton(onClick = { vm.toggleWatch(state.symbol) }) {
+                        Icon(
+                            if (state.inWatchlist) Icons.Filled.Star else Icons.Outlined.Star,
+                            contentDescription = "watchlist",
+                            tint = if (state.inWatchlist) Warn else Mute,
+                        )
+                    }
+                }
+            },
         )
         Spacer(Modifier.height(10.dp))
         Row(
@@ -142,6 +165,16 @@ fun IntelScreen(vm: IntelViewModel) {
         ) {
             val r = state.report
             PriceCard(state, r)
+            Spacer(Modifier.height(10.dp))
+            val candles = if (state.chartTf == "4h") state.candles4h else state.candles1h
+            CandleChart(
+                candles = candles,
+                entry = r?.price ?: 0.0,
+                sl = r?.sl ?: 0.0,
+                tp = r?.tp ?: 0.0,
+                label = state.chartTf,
+                onToggle = { vm.toggleChartTf() },
+            )
             Spacer(Modifier.height(10.dp))
             ScoreCard(r)
             Spacer(Modifier.height(10.dp))

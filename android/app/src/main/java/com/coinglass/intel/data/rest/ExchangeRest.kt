@@ -60,6 +60,7 @@ class ExchangeRest(private val client: OkHttpClient) {
         val k5: List<Candle> = emptyList(),
         val k15: List<Candle> = emptyList(),
         val k1h: List<Candle> = emptyList(),
+        val k4h: List<Candle> = emptyList(),
     )
 
     private fun merge(pair: String, bn: Bundle, by: Bundle, ok: Bundle): ScoreInput {
@@ -78,6 +79,7 @@ class ExchangeRest(private val client: OkHttpClient) {
             klines5m = bn.k5,
             klines15m = bn.k15,
             klines1h = bn.k1h,
+            klines4h = bn.k4h,
         )
     }
 
@@ -93,6 +95,7 @@ class ExchangeRest(private val client: OkHttpClient) {
         val k5 = get("$BN/fapi/v1/klines?symbol=$pair&interval=5m&limit=200")
         val k15 = get("$BN/fapi/v1/klines?symbol=$pair&interval=15m&limit=100")
         val k1h = get("$BN/fapi/v1/klines?symbol=$pair&interval=1h&limit=100")
+        val k4h = get("$BN/fapi/v1/klines?symbol=$pair&interval=4h&limit=100")
 
         val tObj = ticker.asObj()
         val prices = mutableListOf<NamedPrice>()

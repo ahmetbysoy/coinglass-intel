@@ -94,21 +94,9 @@ object MarketScorer {
             Scalper.detectCvdDivergence(closes5, cvdSeries)
         } else mapOf("divergence" to false, "type" to null, "strength" to 0.0)
 
-        val oiScore = when {
-            oiChgPct > 0 && chg24 > 0 -> 60.0
-            oiChgPct > 0 && chg24 < 0 -> -40.0
-            oiChgPct < 0 && chg24 > 0 -> 30.0
-            oiChgPct < 0 && chg24 < 0 -> -60.0
-            else -> 0.0
-        }
+        val oiScore = Curves.oiScore(oiChgPct, chg24)
         val fundingScore = max(min(-fundingAvg * 10_000.0, 100.0), -100.0)
-        val liqScore = when {
-            lsAvg > 2 -> -40.0
-            lsAvg > 1.5 -> -20.0
-            lsAvg < 0.5 -> 40.0
-            lsAvg < 0.7 -> 20.0
-            else -> 0.0
-        }
+        val liqScore = Curves.lsScore(lsAvg)
 
         val m5 = mom["5m"]
         var volScore = 0.0
@@ -123,14 +111,7 @@ object MarketScorer {
         val momParts = mutableListOf<Double>()
         for (tfName in listOf("5m", "15m", "1h")) {
             val mm = mom[tfName] ?: continue
-            val rsi = mm["rsi"] ?: 50.0
-            val rsiSig = when {
-                rsi > 70 -> -30.0
-                rsi > 60 -> 10.0
-                rsi < 30 -> 30.0
-                rsi < 40 -> -10.0
-                else -> 0.0
-            }
+            val rsiSig = Curves.rsiSignal(mm["rsi"] ?: 50.0)
             momParts += (rsiSig + max(min((mm["ret_3"] ?: 0.0) * 10, 50.0), -50.0)) / 2.0
         }
         val momScore = (if (momParts.isEmpty()) 0.0 else momParts.average()) + confluence * 0.5
@@ -165,13 +146,9 @@ object MarketScorer {
             else -> "NEUTRAL"
         }
 
-        var risk = 0
-        if (atrPct > 4) risk += 20 else if (atrPct > 2) risk += 10
-        if (abs(fundingAvg) > 0.01) risk += 10
-        if (lsAvg > 2 || lsAvg < 0.5) risk += 15
-        if (vol24 < 1_000_000) risk += 20 else if (vol24 < 10_000_000) risk += 10
+        val risk = Curves.riskScore(atrPct, fundingAvg, lsAvg, vol24)
         val spoof = analyzeSpoof(feed, lsAvg, aggImb)
-        val strat = generateStrategy(price, direction, atrPct, fundingAvg, lsAvg, aggImb)
+        val strat = generateStrategy(price, direction, atrPct, fundingAvg, lsAvg, aggImb, total)
 
         fun sig(raw: Double) = SimpleSignal(
             directionalScore = max(min(raw / 100.0, 1.0), -1.0),
@@ -192,7 +169,7 @@ object MarketScorer {
             "$pair  ${fmtPrice(price)}  24h ${"%+.2f".format(chg24)}%  vol ${fmtUsd(vol24)}",
             "YON: $direction   skor ${"%+.1f".format(total)}/100   confluence ${"%+.1f".format(confluence)}",
             "OI ${"%,.0f".format(oiBn)} (${"%+.2f".format(oiChgPct)}%)  fund ${"%+.4f".format(fundingAvg * 100)}%  L/S ${"%.3f".format(lsAvg)}  OB imb ${"%+.1f".format(aggImb)}%",
-            "CVD ${"%+.2f".format(cvdPct)}%  ATR% ${"%.2f".format(atrPct)}  risk ${min(risk, 100)}/100  spoof $spoof/100",
+            "CVD ${"%+.2f".format(cvdPct)}%  ATR% ${"%.2f".format(atrPct)}  risk $risk/100  spoof $spoof/100",
         )
         mom["5m"]?.let { m5r ->
             lines += "5m WilderRSI ${"%.1f".format(m5r["rsi"])}  StochRSI ${"%.1f".format(m5r["stoch_rsi"])}  MACD ${"%+.5f".format(m5r["histogram"])}"
@@ -215,7 +192,7 @@ object MarketScorer {
             direction = direction,
             totalScore = total,
             confluence = confluence,
-            risk = min(risk, 100),
+            risk = risk,
             spoof = spoof,
             strategy = strat.strategy,
             strategyWarnings = strat.warnings,
@@ -281,27 +258,21 @@ object MarketScorer {
         funding: Double,
         lsAvg: Double,
         imb: Double,
+        totalScore: Double,
     ): Strat {
-        val slPct = if (atrPct > 0) max(0.5, atrPct * 1.5) else 1.0
-        val tpPct = slPct * 2
-        val sl: Double
-        val tp: Double
+        val lv = Curves.slTp(price, direction, atrPct, totalScore)
+        val sl = lv.sl
+        val tp = lv.tp
+        val slPct = lv.slPct
+        val tpPct = lv.tpPct
+        val rr = if (slPct == 0.0) 0.0 else tpPct / slPct
         val strategy = when {
-            "BULL" in direction -> {
-                sl = price * (1 - slPct / 100)
-                tp = price * (1 + tpPct / 100)
-                "LONG entry ~${fmtPrice(price)}  SL ${fmtPrice(sl)} (-${"%.2f".format(slPct)}%)  TP ${fmtPrice(tp)} (+${"%.2f".format(tpPct)}%)"
-            }
-            "BEAR" in direction -> {
-                sl = price * (1 + slPct / 100)
-                tp = price * (1 - tpPct / 100)
-                "SHORT entry ~${fmtPrice(price)}  SL ${fmtPrice(sl)} (+${"%.2f".format(slPct)}%)  TP ${fmtPrice(tp)} (-${"%.2f".format(tpPct)}%)"
-            }
-            else -> {
-                sl = price * 0.99
-                tp = price * 1.01
+            "BULL" in direction ->
+                "LONG entry ~${fmtPrice(price)}  SL ${fmtPrice(sl)} (-${"%.2f".format(slPct)}%)  TP ${fmtPrice(tp)} (+${"%.2f".format(tpPct)}%)  RR ${"%.2f".format(rr)}"
+            "BEAR" in direction ->
+                "SHORT entry ~${fmtPrice(price)}  SL ${fmtPrice(sl)} (+${"%.2f".format(slPct)}%)  TP ${fmtPrice(tp)} (-${"%.2f".format(tpPct)}%)  RR ${"%.2f".format(rr)}"
+            else ->
                 "NEUTRAL — range. Destek ${fmtPrice(sl)} / Direnc ${fmtPrice(tp)}"
-            }
         }
         val warns = mutableListOf<String>()
         if (funding < -0.0005) warns += "Funding negatif — short squeeze potansiyeli"

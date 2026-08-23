@@ -1,7 +1,9 @@
 package com.coinglass.intel
 
 import android.app.Application
+import com.coinglass.intel.alert.AlertNotifier
 import com.coinglass.intel.data.repo.MarketRepository
+import com.coinglass.intel.work.ScoreWorker
 import okhttp3.OkHttpClient
 
 class IntelApp : Application() {
@@ -15,5 +17,7 @@ class IntelApp : Application() {
         val (ws, rest) = MarketRepository.clients()
         wsClient = ws
         restClient = rest
+        AlertNotifier.ensureChannels(this)
+        ScoreWorker.enqueue(this)
     }
 }

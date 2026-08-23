@@ -38,9 +38,7 @@ class MarketRepository(
     private val binance = BinanceDualWs(wsClient, externalScope)
     private val cg = CoinGlassLiqWs(wsClient, externalScope)
 
-    private val _state = MutableStateFlow(
-        IntelUiState(chips = Symbols.chips),
-    )
+    private val _state = MutableStateFlow(IntelUiState())
     val state: StateFlow<IntelUiState> = _state.asStateFlow()
 
     private var restSnap: ScoreInput? = null
@@ -54,7 +52,8 @@ class MarketRepository(
     private var liqLong = 0.0
     private var liqShort = 0.0
     private var watchJob: Job? = null
-    private var symbol = "BTCUSDT"
+    private var symbol = ""
+    private var chartTf = "1h"
 
     init {
         externalScope.launch {
@@ -79,8 +78,14 @@ class MarketRepository(
         }
     }
 
+    fun toggleChartTf() {
+        chartTf = if (chartTf == "1h") "4h" else "1h"
+        _state.update { it.copy(chartTf = chartTf) }
+    }
+
     fun watch(raw: String) {
         val next = Symbols.normalize(raw)
+        if (next.isBlank()) return
         symbol = next
         restSnap = null
         livePrice = 0.0

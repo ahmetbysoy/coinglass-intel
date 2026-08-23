@@ -6,10 +6,22 @@ on:
   workflow_dispatch:
 
 jobs:
+  python-tests:
+    name: python-engine
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run engine tests
+        working-directory: python
+        run: python -m unittest discover -s tests -v
+
   assemble:
     name: assembleDebug
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,11 +38,15 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Assemble debug APK
+      - name: Unit tests
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew :app:assembleDebug --stacktrace --no-daemon
+          ./gradlew :app:testDebugUnitTest --stacktrace --no-daemon
+
+      - name: Assemble debug APK
+        working-directory: android
+        run: ./gradlew :app:assembleDebug --stacktrace --no-daemon
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4

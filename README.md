@@ -33,9 +33,12 @@ Binance USD-M 2026 split: unrouted `/ws` sadece `/public` basar. `@trade` canlı
 ## Proje
 
 ```
-android/          Gradle uygulaması (com.coinglass.intel)
+android/                 Compose uygulama
+python/engine/           outcome tracker + continuous curves
 .github/workflows/apk.yml
 ```
+
+Sembol listesi hardcode değil. Watchlist = kullanıcının yazdığı çiftler (Room).
 
 minSdk 26 · targetSdk 35 · Compose · OkHttp WS · kotlinx.serialization
 
