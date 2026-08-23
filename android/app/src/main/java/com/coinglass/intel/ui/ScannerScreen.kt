@@ -47,6 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.coinglass.intel.data.db.DiscoverySnapEntity
+import com.coinglass.intel.data.db.PaperTradeEntity
 import com.coinglass.intel.data.db.ScoreSnapEntity
 import com.coinglass.intel.domain.fmtPrice
 import com.coinglass.intel.ui.theme.Bear
