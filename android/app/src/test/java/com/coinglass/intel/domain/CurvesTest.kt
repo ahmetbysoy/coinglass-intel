@@ -101,4 +101,14 @@ class CurvesTest {
         val s = Structure.spoofFromHistory(hist, 4000)
         assertTrue(s >= 0)
     }
+
+    @Test
+    fun calibratorNeedsThirtyForFull() {
+        val avg = mapOf("OB" to 4.0)
+        assertTrue(WeightCalibrator.boost(avg, 7).isEmpty())
+        val half = WeightCalibrator.boost(avg, 12).getValue("OB")
+        val full = WeightCalibrator.boost(avg, 40).getValue("OB")
+        assertTrue(full > half)
+        assertTrue(half > 1.0)
+    }
 }

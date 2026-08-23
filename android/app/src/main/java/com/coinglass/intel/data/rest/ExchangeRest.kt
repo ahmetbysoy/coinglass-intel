@@ -146,10 +146,12 @@ class ExchangeRest(private val client: OkHttpClient) {
                     sellVol = o.num("sellVol", "sumTakerSellVolume"),
                 )
             } ?: emptyList(),
+            k1 = parseKlines(k1),
+            k3 = parseKlines(k3),
             k5 = parseKlines(k5),
             k15 = parseKlines(k15),
             k1h = parseKlines(k1h),
-            k4h = parseKlines(k4h),
+            nextFundingMs = prem.asObj()?.num("nextFundingTime")?.toLong() ?: 0L,
         )
     }
 
