@@ -18,7 +18,7 @@ A/B + enterOk iken **KAĞIT AÇ**. SL/TP veya 15dk timeout. Emir gitmez.
 
 ## Grafik
 
-**1m / 3m / 5m / 15m**. 320dp. Tap / uzun bas-sürükle **crosshair** → OHLC + saat + liq bin. Pinch + kaydırma. REST 600 seed. OB / FVG / Sweep chip kapalı, **Heat açık**.
+Tam ekran (DOM yok). Chrome overlay. Tap / uzun bas-sürükle **crosshair**. VAL/VAH ince çizgi. Fiyat ekseni kutulu. DOM + ısı + metrics → **Nabız**.
 
 ## Likidasyon haritası
 

@@ -1,1 +1,1 @@
-v1.13: tam ekran grafik — chrome overlay, DOM Nabız’da, VAL çizgi, fiyat etiketi kutu.
+v1.14: viewport chart — pinch odak, pan, EMA 20/50, CANLI, Compose drawText. Dev canvas yok.
