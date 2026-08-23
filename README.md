@@ -4,7 +4,7 @@ Native Kotlin / Jetpack Compose telefon istihbaratı.
 
 Sembol **hardcode değil**. Watchlist = senin yazdığın pair (Room).
 
-Ürün + faz spec: [`SPEC.md`](SPEC.md) — Faz 0 (dedup Room, lockstep CI, risk etiketi) kodda.
+Ürün + faz spec: [`SPEC.md`](SPEC.md) — Faz 0+1 kodda (6 tab).
 
 ## Karar
 

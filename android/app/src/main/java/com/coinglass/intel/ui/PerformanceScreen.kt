@@ -46,7 +46,12 @@ import kotlin.math.abs
 private enum class Horizon { M5, M15, H1 }
 
 @Composable
-fun PerformanceScreen(rows: List<OutcomeEntity>) {
+fun PerformanceScreen(
+    rows: List<OutcomeEntity>,
+    equityUsd: Double = 1_000.0,
+    riskPct: Double = 1.0,
+    report: com.coinglass.intel.domain.model.V4Report? = null,
+) {
     val scheme = MaterialTheme.colorScheme
     var hz by remember { mutableStateOf(Horizon.M15) }
     val settled = rows.filter {
@@ -152,6 +157,8 @@ fun PerformanceScreen(rows: List<OutcomeEntity>) {
             Text("equity (kümülatif yönlü %)", color = scheme.onSurfaceVariant, fontSize = 10.sp)
         }
         Attribution(settled, ::winOf)
+        Spacer(Modifier.height(10.dp))
+        PositionCard(report, equityUsd, riskPct)
         Spacer(Modifier.height(10.dp))
         LazyColumn {
             items(rows.take(80), key = { it.id }) { o ->

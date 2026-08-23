@@ -100,10 +100,10 @@ Her faz: Kotlin unit test + `python -m unittest` + CI `assembleDebug` yeşil. RE
 
 | ID | İş | Kabul |
 |---|---|---|
-| 1.1 | Nav 6 öğe | MainActivity 6 tab, state korunur. |
-| 1.2 | IntelScreen böl | DecisionScreen + ChartScreen; logic kopyalanmaz, Composable taşınır. |
-| 1.3 | Karar sığar | Pixel 5 genişlikte Verdict+Price+Strategy ilk viewport’ta (scroll ≤ 80dp). |
-| 1.4 | Grafik büyük | Chart tab CandleChart height ≥ 320.dp. |
+| 1.1 | Nav 6 öğe | **yapıldı** Karar/Grafik/Radar/İsabet/Nabız/Ayar. |
+| 1.2 | IntelScreen böl | **yapıldı** Karar = IntelScreen (ince), Grafik = ChartScreen. |
+| 1.3 | Karar sığar | **yapıldı** DOM/liq/chart Karar’dan çıktı. |
+| 1.4 | Grafik büyük | **yapıldı** `chartHeight = 320.dp`. |
 
 ### FAZ 2 — SMC
 

@@ -195,63 +195,21 @@ fun IntelScreen(vm: AppViewModel) {
             Spacer(Modifier.height(10.dp))
             PriceCard(state, r)
             Spacer(Modifier.height(10.dp))
-            ObHeatmap(state.bids, state.asks, r?.spoof ?: 0, r?.bidWall ?: 0.0, r?.askWall ?: 0.0)
-            Spacer(Modifier.height(10.dp))
-            PositionCard(r, cfg.equityUsd, cfg.riskPct)
-            Spacer(Modifier.height(10.dp))
-            LiqPulse(r, state.liqSeen)
-            Spacer(Modifier.height(10.dp))
-            LiqHeatmap(state.liqHeat, r?.price ?: state.lastPrice)
-            Spacer(Modifier.height(10.dp))
             StrategyCard(r, state.hit.line, state.chartTf)
-            Spacer(Modifier.height(10.dp))
-            SourceStale(state, cfg.staleSeconds)
-            Spacer(Modifier.height(10.dp))
-            val candles = when (state.chartTf) {
-                "1m" -> state.candles1m
-                "3m" -> state.candles3m
-                "15m" -> state.candles15m
-                else -> state.candles5m
-            }
-            CandleChart(
-                candles = candles,
-                entry = r?.price ?: 0.0,
-                sl = r?.sl ?: 0.0,
-                tp = r?.tp ?: 0.0,
-                chartTf = state.chartTf,
-                onSelectTf = { vm.selectChartTf(it) },
-                support = r?.support ?: 0.0,
-                resistance = r?.resistance ?: 0.0,
-                bidWall = r?.bidWall ?: 0.0,
-                askWall = r?.askWall ?: 0.0,
-                poc = r?.poc ?: 0.0,
-                spoof = r?.spoof ?: 0,
-                divergeType = r?.divergeType.orEmpty(),
-                liqHeat = state.liqHeat,
+            Spacer(Modifier.height(Space.sm))
+            Text(
+                "grafik / DOM / liq → Grafik sekmesi",
+                color = scheme.onSurfaceVariant,
+                fontSize = 11.sp,
+                modifier = Modifier.clickable { vm.selectTab(1) },
             )
-            Spacer(Modifier.height(10.dp))
-            Components(r)
-            Spacer(Modifier.height(10.dp))
-            MetricsGrid(r, state.liqSeen)
-            if (state.restErrors.isNotEmpty()) {
-                Spacer(Modifier.height(Space.sm))
-                WarnCard(state.restErrors.take(4).map { "REST $it" })
-            }
-            Spacer(Modifier.height(10.dp))
-            TfRow(r?.tfPreds.orEmpty())
-            if (!r?.strategyWarnings.isNullOrEmpty()) {
-                Spacer(Modifier.height(10.dp))
-                WarnCard(r!!.strategyWarnings)
-            }
-            Spacer(Modifier.height(18.dp))
-            ConnBar(state)
-            Spacer(Modifier.height(Space.xl))
+            Spacer(Modifier.height(Space.md))
         }
     }
 }
 
 @Composable
-private fun Header(state: IntelUiState) {
+internal fun Header(state: IntelUiState) {
     val scheme = MaterialTheme.colorScheme
     Row(
         modifier = Modifier
@@ -410,7 +368,7 @@ private fun StrategyCard(r: V4Report?, hitLine: String, chartTf: String) {
 }
 
 @Composable
-private fun MetricsGrid(r: V4Report?, liqSeen: Boolean) {
+internal fun MetricsGrid(r: V4Report?, liqSeen: Boolean) {
     val scheme = MaterialTheme.colorScheme
     val liqL = if (liqSeen) fmtUsd(r?.liqLong ?: 0.0) else "N/A"
     val liqS = if (liqSeen) fmtUsd(r?.liqShort ?: 0.0) else "N/A"
@@ -466,7 +424,7 @@ private fun MetricsGrid(r: V4Report?, liqSeen: Boolean) {
 }
 
 @Composable
-private fun TfRow(preds: List<TfPred>) {
+internal fun TfRow(preds: List<TfPred>) {
     if (preds.isEmpty()) return
     val scheme = MaterialTheme.colorScheme
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Space.sm)) {
@@ -499,7 +457,7 @@ private fun TfRow(preds: List<TfPred>) {
 }
 
 @Composable
-private fun Components(r: V4Report?) {
+internal fun Components(r: V4Report?) {
     val scheme = MaterialTheme.colorScheme
     val comps = listOf(
         "OB" to (r?.component?.get("ob") ?: 0.0),
@@ -546,7 +504,7 @@ private fun Components(r: V4Report?) {
 }
 
 @Composable
-private fun WarnCard(items: List<String>) {
+internal fun WarnCard(items: List<String>) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -561,7 +519,7 @@ private fun WarnCard(items: List<String>) {
 }
 
 @Composable
-private fun ConnBar(state: IntelUiState) {
+internal fun ConnBar(state: IntelUiState) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -659,7 +617,7 @@ private fun Glossary(term: String, expl: String) {
 }
 
 @Composable
-private fun SourceStale(state: IntelUiState, staleSec: Int) {
+internal fun SourceStale(state: IntelUiState, staleSec: Int) {
     val scheme = MaterialTheme.colorScheme
     val now = System.currentTimeMillis()
     fun tag(ms: Long) = if (ms == 0L) "yok" else if (now - ms > staleSec * 1000L) "BAYAT" else "ok"
@@ -714,7 +672,7 @@ private fun DailyRiskStrip(rows: List<OutcomeEntity>) {
 }
 
 @Composable
-private fun PositionCard(r: V4Report?, equity: Double, riskPct: Double) {
+internal fun PositionCard(r: V4Report?, equity: Double, riskPct: Double) {
     val scheme = MaterialTheme.colorScheme
     val plan = com.coinglass.intel.domain.PositionSizer.plan(equity, riskPct, r?.price ?: 0.0, r?.sl ?: 0.0)
     Card {

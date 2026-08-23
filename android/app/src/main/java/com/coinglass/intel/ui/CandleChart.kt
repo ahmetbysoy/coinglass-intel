@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.coinglass.intel.domain.ChartSeries
@@ -64,6 +65,7 @@ fun CandleChart(
     spoof: Int = 0,
     divergeType: String = "",
     liqHeat: LiqHeat.Grid = LiqHeat.Grid(),
+    chartHeight: Dp = 188.dp,
 ) {
     val heat = liqHeat
     val scheme = MaterialTheme.colorScheme
@@ -125,7 +127,7 @@ fun CandleChart(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(188.dp)
+                .height(chartHeight)
                 .clip(RoundedCornerShape(Radii.sm))
                 .background(Color(0xFF08141C))
                 .pointerInput(candles.size) {
@@ -143,7 +145,7 @@ fun CandleChart(
                 Canvas(
                     Modifier
                         .width(canvasW)
-                        .height(188.dp)
+                        .height(chartHeight)
                         .padding(horizontal = 4.dp, vertical = 4.dp),
                 ) {
                     val volH = size.height * 0.20f

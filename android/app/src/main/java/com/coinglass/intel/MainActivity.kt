@@ -16,8 +16,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coinglass.intel.ui.AppViewModel
+import com.coinglass.intel.ui.ChartScreen
 import com.coinglass.intel.ui.IntelScreen
 import com.coinglass.intel.ui.PerformanceScreen
+import com.coinglass.intel.ui.PulseScreen
 import com.coinglass.intel.ui.ScannerScreen
 import com.coinglass.intel.ui.SettingsScreen
 import com.coinglass.intel.ui.theme.CoinGlassTheme
@@ -37,6 +39,7 @@ class MainActivity : ComponentActivity() {
             val now by vm.now.collectAsStateWithLifecycle()
             val compare by vm.compare.collectAsStateWithLifecycle()
             val outcomes by vm.outcomes.collectAsStateWithLifecycle()
+            val live by vm.live.collectAsStateWithLifecycle()
             CoinGlassTheme(dark = settings.darkTheme) {
                 Scaffold(
                     bottomBar = {
@@ -44,33 +47,46 @@ class MainActivity : ComponentActivity() {
                             NavigationBarItem(
                                 selected = tab == 0,
                                 onClick = { vm.selectTab(0) },
-                                icon = { Icon(painterResource(R.drawable.ic_nav_live), contentDescription = "canli") },
-                                label = { Text("Canli") },
+                                icon = { Icon(painterResource(R.drawable.ic_nav_live), contentDescription = "karar") },
+                                label = { Text("Karar") },
                             )
                             NavigationBarItem(
                                 selected = tab == 1,
                                 onClick = { vm.selectTab(1) },
-                                icon = { Icon(painterResource(R.drawable.ic_nav_scan), contentDescription = "tarayici") },
-                                label = { Text("Tarayici") },
+                                icon = { Icon(painterResource(R.drawable.ic_nav_chart), contentDescription = "grafik") },
+                                label = { Text("Grafik") },
                             )
                             NavigationBarItem(
                                 selected = tab == 2,
                                 onClick = { vm.selectTab(2) },
-                                icon = { Icon(painterResource(R.drawable.ic_nav_hit), contentDescription = "isabet") },
-                                label = { Text("Isabet") },
+                                icon = { Icon(painterResource(R.drawable.ic_nav_scan), contentDescription = "radar") },
+                                label = { Text("Radar") },
                             )
                             NavigationBarItem(
                                 selected = tab == 3,
                                 onClick = { vm.selectTab(3) },
-                                icon = { Icon(painterResource(R.drawable.ic_nav_set), contentDescription = "ayarlar") },
-                                label = { Text("Ayarlar") },
+                                icon = { Icon(painterResource(R.drawable.ic_nav_hit), contentDescription = "isabet") },
+                                label = { Text("Isabet") },
+                            )
+                            NavigationBarItem(
+                                selected = tab == 4,
+                                onClick = { vm.selectTab(4) },
+                                icon = { Icon(painterResource(R.drawable.ic_nav_pulse), contentDescription = "nabiz") },
+                                label = { Text("Nabiz") },
+                            )
+                            NavigationBarItem(
+                                selected = tab == 5,
+                                onClick = { vm.selectTab(5) },
+                                icon = { Icon(painterResource(R.drawable.ic_nav_set), contentDescription = "ayar") },
+                                label = { Text("Ayar") },
                             )
                         }
                     },
                 ) { pad ->
                     androidx.compose.foundation.layout.Box(Modifier.padding(pad)) {
                         when (tab) {
-                            1 -> ScannerScreen(
+                            1 -> ChartScreen(vm)
+                            2 -> ScannerScreen(
                                 snaps = snaps,
                                 scanning = scanning,
                                 staleSec = settings.staleSeconds,
@@ -84,8 +100,9 @@ class MainActivity : ComponentActivity() {
                                 onRefresh = { vm.refreshScanner() },
                                 onCompare = { vm.toggleCompare(it) },
                             )
-                            2 -> PerformanceScreen(outcomes)
-                            3 -> SettingsScreen(
+                            3 -> PerformanceScreen(outcomes, settings.equityUsd, settings.riskPct, live.report)
+                            4 -> PulseScreen(vm)
+                            5 -> SettingsScreen(
                                 s = settings,
                                 onChange = { vm.updateSettings(it) },
                                 onToggleService = { vm.toggleService(it) },
