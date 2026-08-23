@@ -63,7 +63,9 @@ fun CandleChart(
     poc: Double = 0.0,
     spoof: Int = 0,
     divergeType: String = "",
+    liqHeat: LiqHeat.Grid = LiqHeat.Grid(),
 ) {
+    val heat = liqHeat
     val scheme = MaterialTheme.colorScheme
     val accent = scheme.primary
     var window by remember { mutableIntStateOf(ChartSeries.VISIBLE_BARS) }
