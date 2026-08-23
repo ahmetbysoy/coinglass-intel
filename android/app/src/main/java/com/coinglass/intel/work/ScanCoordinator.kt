@@ -17,6 +17,7 @@ class ScanCoordinator(
 
     suspend fun scan(notify: Boolean, ctx: Context, minAbs: Double): List<ScoreSnapEntity> {
         val snaps = scanner.scanAll()
+        runCatching { com.coinglass.intel.widget.IntelWidget.refresh(ctx) }
         if (!notify) return snaps
         val now = System.currentTimeMillis()
         for (s in snaps) {

@@ -8,19 +8,15 @@ Sembol **hardcode değil**. Watchlist = senin yazdığın pair (Room).
 
 Tek satır + A/B/C/D. **GİRME** kırmızı: spoof≥50 / coverage<%40 / netRR<1.
 
-İlk açılışta 3 adımlı tur (sabit coin yok). Ayarlar’dan tekrar açılır.
+İlk açılış 3 adımlı tur. Ayarlar’dan tekrar.
 
-## Para
+## Widget
 
-Pozisyon boyutu = bakiye × risk% / SL. Günlük risk şeridi: 8+ kayıt veya 3 kayıp üst üste → DUR.
-
-## DOM + borsalar
-
-Canlı kitap heatmap. Binance WS + Bybit/OKX BBO. REST 600 mum, WS ezmez.
+Ana ekran widget: Room watchlist’ten `|skor|` top 3. Watchlist boşsa “pair yaz” — BTC/ETH yok.
 
 ## Grafik
 
-Sadece **1m / 3m / 5m / 15m**. VAL/VAH bant, spoof kesikli.
+**1m / 3m / 5m / 15m**. Pinch zoom + kaydırma. REST 600 seed, WS ezmez.
 
 ## CI
 

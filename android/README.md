@@ -1,1 +1,1 @@
-v1.4: custom nav+icon, interaktif tur, günlük risk şeridi.
+v1.5: home widget (watchlist only), chart pinch-zoom.

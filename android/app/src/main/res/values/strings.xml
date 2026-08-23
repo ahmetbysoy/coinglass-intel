@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">CoinGlass Intel</string>
+    <string name="widget_desc">Watchlist |skor| — senin yazdığın pairler</string>
 </resources>

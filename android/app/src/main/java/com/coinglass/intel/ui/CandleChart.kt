@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -123,6 +125,13 @@ fun CandleChart(
                 .height(188.dp)
                 .clip(RoundedCornerShape(Radii.sm))
                 .background(Color(0xFF08141C))
+                .pointerInput(candles.size) {
+                    detectTransformGestures { _, _, zoom, _ ->
+                        if (zoom == 1f) return@detectTransformGestures
+                        val next = (window / zoom).toInt().coerceIn(40, 220)
+                        if (next != window) window = next
+                    }
+                }
                 .horizontalScroll(scroll),
         ) {
             if (shown.size < 2) {
@@ -191,8 +200,8 @@ fun CandleChart(
         }
         Spacer(Modifier.height(6.dp))
         Text(
-            "kaydır: geçmiş  ·  VAL/VAH bant  ·  kesikli duvar = spoof" +
-                if (divergeType.isNotBlank()) "  ·  CVD $divergeType" else "",
+            "pinch zoom · kaydir gecmis · VAL/VAH · kesikli=spoof" +
+                if (divergeType.isNotBlank()) " · CVD $divergeType" else "",
             color = scheme.onSurfaceVariant,
             fontSize = 10.sp,
         )
