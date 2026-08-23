@@ -4,7 +4,7 @@ Native Kotlin / Jetpack Compose telefon istihbaratı.
 
 Sembol **hardcode değil**. Watchlist = senin yazdığın pair (Room). Keşif = Binance 24s ticker, hacim top-N.
 
-Ürün + faz spec: [`SPEC.md`](SPEC.md) — Faz 0+1+4+2+3+7 kodda (6 tab, Radar, SMC, paper, crosshair).
+Ürün + faz spec: [`SPEC.md`](SPEC.md). Chart range analizi: [`ANALIZ.md`](ANALIZ.md).
 
 ## Karar
 

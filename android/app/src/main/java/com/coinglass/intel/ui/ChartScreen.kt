@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -34,8 +35,7 @@ fun ChartScreen(vm: AppViewModel) {
         modifier = Modifier
             .fillMaxSize()
             .background(scheme.background)
-            .padding(horizontal = Space.lg)
-            .verticalScroll(scroll),
+            .padding(horizontal = Space.lg),
     ) {
         Header(state)
         Spacer(Modifier.height(Space.sm))
@@ -57,30 +57,37 @@ fun ChartScreen(vm: AppViewModel) {
             spoof = r?.spoof ?: 0,
             divergeType = r?.divergeType.orEmpty(),
             liqHeat = state.liqHeat,
-            chartHeight = 320.dp,
+            modifier = Modifier.weight(1.15f).fillMaxWidth(),
         )
-        Spacer(Modifier.height(10.dp))
-        ObHeatmap(state.bids, state.asks, r?.spoof ?: 0, r?.bidWall ?: 0.0, r?.askWall ?: 0.0)
-        Spacer(Modifier.height(10.dp))
-        LiqHeatmap(state.liqHeat, r?.price ?: state.lastPrice)
-        Spacer(Modifier.height(10.dp))
-        LiqPulse(r, state.liqSeen)
-        Spacer(Modifier.height(10.dp))
-        MetricsGrid(r, state.liqSeen)
-        if (state.restErrors.isNotEmpty()) {
-            Spacer(Modifier.height(Space.sm))
-            WarnCard(state.restErrors.take(4).map { "REST $it" })
-        }
-        Spacer(Modifier.height(10.dp))
-        TfRow(r?.tfPreds.orEmpty())
-        Spacer(Modifier.height(10.dp))
-        Components(r)
-        if (!r?.strategyWarnings.isNullOrEmpty()) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(scroll),
+        ) {
             Spacer(Modifier.height(10.dp))
-            WarnCard(r!!.strategyWarnings)
+            ObHeatmap(state.bids, state.asks, r?.spoof ?: 0, r?.bidWall ?: 0.0, r?.askWall ?: 0.0)
+            Spacer(Modifier.height(10.dp))
+            LiqHeatmap(state.liqHeat, r?.price ?: state.lastPrice)
+            Spacer(Modifier.height(10.dp))
+            LiqPulse(r, state.liqSeen)
+            Spacer(Modifier.height(10.dp))
+            MetricsGrid(r, state.liqSeen)
+            if (state.restErrors.isNotEmpty()) {
+                Spacer(Modifier.height(Space.sm))
+                WarnCard(state.restErrors.take(4).map { "REST $it" })
+            }
+            Spacer(Modifier.height(10.dp))
+            TfRow(r?.tfPreds.orEmpty())
+            Spacer(Modifier.height(10.dp))
+            Components(r)
+            if (!r?.strategyWarnings.isNullOrEmpty()) {
+                Spacer(Modifier.height(10.dp))
+                WarnCard(r!!.strategyWarnings)
+            }
+            Spacer(Modifier.height(18.dp))
+            ConnBar(state)
+            Spacer(Modifier.height(Space.xl))
         }
-        Spacer(Modifier.height(18.dp))
-        ConnBar(state)
-        Spacer(Modifier.height(Space.xl))
     }
 }

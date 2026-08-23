@@ -1,1 +1,1 @@
-v1.11: Faz 7 — crosshair tap/drag, Heat chip, grafik 320dp.
+v1.12: chart range clamp — uzak VAL/VAH/duvar mumları ezmez. Fiyat ekseni + flex yükseklik.

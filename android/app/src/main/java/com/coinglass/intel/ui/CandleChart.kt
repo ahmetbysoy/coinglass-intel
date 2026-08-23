@@ -16,8 +16,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -45,9 +47,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.coinglass.intel.domain.ChartHit
+import com.coinglass.intel.domain.ChartRange
 import com.coinglass.intel.domain.ChartSeries
 import com.coinglass.intel.domain.LiqHeat
 import com.coinglass.intel.domain.Smc
+import com.coinglass.intel.domain.Structure
 import com.coinglass.intel.domain.fmtPrice
 import com.coinglass.intel.domain.model.Candle
 import com.coinglass.intel.ui.theme.Bear
@@ -72,8 +76,9 @@ fun CandleChart(
     spoof: Int = 0,
     divergeType: String = "",
     liqHeat: LiqHeat.Grid = LiqHeat.Grid(),
-    chartHeight: Dp = 188.dp,
+    chartHeight: Dp = 320.dp,
     smc: Smc.Report = Smc.Report(),
+    modifier: Modifier = Modifier,
 ) {
     val heat = liqHeat
     val scheme = MaterialTheme.colorScheme
@@ -85,6 +90,7 @@ fun CandleChart(
     var showHeat by rememberSaveable { mutableStateOf(true) }
     var hitIdx by remember { mutableIntStateOf(-1) }
     val shown = ChartSeries.visible(candles, window)
+    val localVa = remember(shown) { Structure.volumeArea(shown) }
     val scroll = rememberScrollState()
     LaunchedEffect(shown.size, chartTf) { scroll.scrollTo(scroll.maxValue) }
     LaunchedEffect(chartTf, candles.size) { hitIdx = -1 }
@@ -93,7 +99,7 @@ fun CandleChart(
     val canvasW = with(density) { (shown.size * 7).dp }
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(Radii.lg))
             .background(scheme.surface)
@@ -148,7 +154,8 @@ fun CandleChart(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(chartHeight)
+                .weight(1f, fill = true)
+                .heightIn(min = maxOf(chartHeight, 280.dp))
                 .clip(RoundedCornerShape(Radii.sm))
                 .background(Color(0xFF08141C))
                 .pointerInput(candles.size) {
@@ -166,7 +173,7 @@ fun CandleChart(
                 Box(
                     Modifier
                         .width(canvasW)
-                        .height(chartHeight),
+                        .fillMaxSize(),
                 ) {
                 Canvas(
                     Modifier
@@ -177,14 +184,11 @@ fun CandleChart(
                     val candleH = size.height - volH - 4f
                     val lows = shown.minOf { it.low }
                     val highs = shown.maxOf { it.high }
-                    val smcPx = buildList {
-                        if (showOb) smc.obs.forEach { add(it.low); add(it.high) }
-                        if (showFvg) smc.fvgs.forEach { add(it.low); add(it.high) }
-                        if (showSweep) smc.sweeps.forEach { add(it.low); add(it.high) }
-                    }
-                    val extra = (listOf(entry, sl, tp, support, resistance, bidWall, askWall, poc) + smcPx).filter { it > 0 }
-                    val lo = (listOf(lows) + extra).min()
-                    val hi = (listOf(highs) + extra).max()
+                    val locVal = localVa.first
+                    val locPoc = localVa.second
+                    val locVah = localVa.third
+                    val extra = listOf(entry, sl, tp, locPoc)
+                    val (lo, hi) = ChartRange.bounds(lows, highs, extra)
                     val span = (hi - lo).let { if (it <= 0) 1.0 else it }
                     fun y(p: Double) = (candleH * (1f - ((p - lo) / span).toFloat())).coerceIn(0f, candleH)
                     val n = shown.size
@@ -193,22 +197,24 @@ fun CandleChart(
                     val maxVol = shown.maxOf { it.volume }.let { if (it <= 0) 1.0 else it }
                     val dash = PathEffect.dashPathEffect(floatArrayOf(8f, 6f), 0f)
                     val thin = PathEffect.dashPathEffect(floatArrayOf(4f, 5f), 0f)
-                    if (support > 0 && resistance > 0 && resistance > support) {
-                        val top = y(resistance)
-                        val bot = y(support)
-                        drawRect(
-                            Color(0x3300E5C3),
-                            Offset(0f, top),
-                            Size(size.width, (bot - top).coerceAtLeast(2f)),
-                        )
+                    if (locVal > 0 && locVah > locVal) {
+                        val top = y(minOf(locVah, hi))
+                        val bot = y(maxOf(locVal, lo))
+                        if (bot > top) {
+                            drawRect(
+                                Color(0x3300E5C3),
+                                Offset(0f, top),
+                                Size(size.width, (bot - top).coerceAtLeast(2f)),
+                            )
+                        }
                     }
-                    if (poc > 0) drawLine(accent.copy(alpha = 0.55f), Offset(0f, y(poc)), Offset(size.width, y(poc)), 1.6f)
-                    if (support > 0) drawLine(Bull.copy(alpha = 0.55f), Offset(0f, y(support)), Offset(size.width, y(support)), 1.4f, pathEffect = thin)
-                    if (resistance > 0) drawLine(Bear.copy(alpha = 0.55f), Offset(0f, y(resistance)), Offset(size.width, y(resistance)), 1.4f, pathEffect = thin)
+                    if (ChartRange.inView(locPoc, lo, hi)) drawLine(accent.copy(alpha = 0.55f), Offset(0f, y(locPoc)), Offset(size.width, y(locPoc)), 1.6f)
+                    if (ChartRange.inView(support, lo, hi)) drawLine(Bull.copy(alpha = 0.55f), Offset(0f, y(support)), Offset(size.width, y(support)), 1.4f, pathEffect = thin)
+                    if (ChartRange.inView(resistance, lo, hi)) drawLine(Bear.copy(alpha = 0.55f), Offset(0f, y(resistance)), Offset(size.width, y(resistance)), 1.4f, pathEffect = thin)
                     val wallDash = if (spoof >= 50) dash else null
                     val wallCol = if (spoof >= 50) Warn else accent
-                    if (bidWall > 0) drawLine(wallCol.copy(alpha = 0.55f), Offset(0f, y(bidWall)), Offset(size.width, y(bidWall)), 1.4f, pathEffect = wallDash)
-                    if (askWall > 0) drawLine(wallCol.copy(alpha = 0.55f), Offset(0f, y(askWall)), Offset(size.width, y(askWall)), 1.4f, pathEffect = wallDash)
+                    if (ChartRange.inView(bidWall, lo, hi)) drawLine(wallCol.copy(alpha = 0.55f), Offset(0f, y(bidWall)), Offset(size.width, y(bidWall)), 1.4f, pathEffect = wallDash)
+                    if (ChartRange.inView(askWall, lo, hi)) drawLine(wallCol.copy(alpha = 0.55f), Offset(0f, y(askWall)), Offset(size.width, y(askWall)), 1.4f, pathEffect = wallDash)
                     val origin = (candles.size - shown.size).coerceAtLeast(0)
                     fun drawZone(z: com.coinglass.intel.domain.Smc.Zone, col: Color) {
                         val x0i = z.startIdx - origin
@@ -278,6 +284,19 @@ fun CandleChart(
                         val hc = shown[hitIdx]
                         drawLine(accent.copy(alpha = 0.85f), Offset(hx, 0f), Offset(hx, candleH), 1.3f)
                         drawLine(accent.copy(alpha = 0.45f), Offset(0f, y(hc.close)), Offset(size.width, y(hc.close)), 1.2f, pathEffect = thin)
+                    }
+                    val axisPaint = android.graphics.Paint().apply {
+                        color = android.graphics.Color.argb(200, 180, 200, 210)
+                        textSize = 10.sp.toPx()
+                        isAntiAlias = true
+                        textAlign = android.graphics.Paint.Align.RIGHT
+                    }
+                    val nc = drawContext.canvas.nativeCanvas
+                    for (i in 0..4) {
+                        val px = hi - (hi - lo) * i / 4.0
+                        val yy = y(px)
+                        drawLine(Color.White.copy(alpha = 0.08f), Offset(0f, yy), Offset(size.width, yy), 1f)
+                        nc.drawText(fmtPrice(px), size.width - 4f, yy - 2f, axisPaint)
                     }
                 }
                 Box(
