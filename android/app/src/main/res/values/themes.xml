@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.CoinGlassIntel" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">#FF071018</item>
+        <item name="android:navigationBarColor">#FF071018</item>
+        <item name="android:windowBackground">#FF071018</item>
+        <item name="android:colorPrimary">#FF00E5C3</item>
+    </style>
+</resources>
