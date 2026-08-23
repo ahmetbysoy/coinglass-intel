@@ -343,7 +343,7 @@ object MarketScorer {
         if (imb > 30) warns += "OB bid agirligi +${"%.1f".format(imb)}%"
         if (imb < -30) warns += "OB ask agirligi ${"%.1f".format(imb)}%"
         if (lv.reason.isNotBlank()) warns += "SL/TP kaynak: ${lv.reason}"
-        return Strat(strategy, warns, sl, tp, lv.reason)
+        return Strat(strategy, warns, sl, tp, lv.reason, rr)
     }
 
     private val tfMods = mapOf(
