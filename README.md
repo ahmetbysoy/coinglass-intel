@@ -4,60 +4,55 @@ Native Kotlin / Jetpack Compose telefon istihbaratı.
 
 Sembol **hardcode değil**. Watchlist = senin yazdığın pair (Room). İlk açılışta öneri çipi yok.
 
+## Karar katmanı
+
+Ekranın en üstü artık sayı yığını değil:
+
+- **Tek satır karar** + A/B/C/D notu (coverage + confluence + spoof + risk + netRR)
+- **GİRME** kırmızı şerit: spoof≥50 veya coverage<%40 veya netRR<1
+- Spoof 50+ ise kart açıkça der: SL duvarı yok, ATR+VAL
+
+## Tema (artık yalan değil)
+
+`MaterialTheme.colorScheme` + `Space`/`Radii` token. Ayarlar → Koyu tema kapanınca **tüm ekranlar** açık (pastel zemin) olur. Yeşil/kırmızı skor pastelleşmez.
+
 ## Grafik
 
-Sadece **1m / 3m / 5m / 15m**. Chip'e dokun, seç.
+Sadece **1m / 3m / 5m / 15m** chip.
 
-Sembol değişince REST **600 mum** çeker. WS ilk mumu gelince o 600'ü **ezmez** — aynı timestamp'te canlı bar kazanır, gerisi REST seed kalır.
+REST **600 mum** seed. WS ezmez. Ekranda 60/90/150 pencere, yatay kaydırma.
 
-Ekranda son **90 mum** + hacim şeridi çizilir (600'ü 160dp'ye sıkıştırmak leke oluyordu). VAL/VAH ve duvar çizgileri üstte.
+VAL/VAH **bant**, POC çizgi. Spoof duvarı kesikli/sarı. CVD divergence nokta.
 
 ## Skor
 
-Confluence ve momentum artık **1m + 3m + 5m + 15m**. 1h sadece ATR yedek (grafikte yok).
+Confluence ve momentum **1m + 3m + 5m + 15m**. 1h sadece ATR yedek.
 
-Ensemble satırı da 1m/3m/5m/15m. `Mom` ağırlığı `volume_signal`'e karışmıyor — ayrı `momentum` sinyali.
+`Mom` ayrı `momentum` sinyali. `netRR` fee + yakın funding dahil.
 
-## Para kaybettiren bug (düzeltildi)
+## Bugfix (audit)
 
-Spoof skoru **50+** ise `bidWall`/`askWall` SL/TP'ye **girmez** — sadece ATR + volume-area (VAL/VAH).
-
-`netRR = (tp − fee − yakın funding) / (sl + fee)`  fee ≈ 0.08% round-trip.
-
-## Kalibrasyon
-
-- n < 8: boost yok
-- 8–29: yarı güç
-- ≥ 30: tam `tanh` boost
-
-Aynı ağırlık haritası hem ana skor hem `ensembleTf` için kullanılır.
-
-## Sinyal
-
-- Confluence: `tanh(ret/atr)` büyüklük
-- Destek/direnç: volume-weighted value area (POC bandı), fractal değil
-- Risk: ATR geçmişinin yüzdeliği (statik >4 yerine)
-- Alt sinyal BTC 24s ile çelişirse uyarı
-- CVD: hacim ağırlıklı eğim
+- Sembol değişince eski WS event **drop** (B3)
+- Watchlist tarama `chunked(5)+200ms`, 418/429 backoff (B4)
+- FGS açıkken ScoreWorker taramaz (B8)
+- `PEPE` → `1000PEPEUSDT` format denemesi (liste değil, 1000/1M kuralı)
+- REST yaşı SourceStale'de
+- İsabet: 5m / 15m / 1h + equity + bileşen wr
 
 ## Ekranlar
 
 | Tab | |
 |---|---|
-| Canlı | Fiyat → strateji + neden + netRR → skor → 1m/3m/5m/15m grafik |
-| Tarayıcı | `\|skor\|` + R/S rozeti + VS karşılaştırma |
-| İsabet | WR + expectancy + R-multiple |
-| Ayarlar | bildirim, FGS, tema, eşikler |
-
-Watchlist `<` `>` ile klavyesiz geçiş. Funding kalan süre `FUND η`. RSI seçili TF'ye göre.
+| Canlı | KARAR → fiyat → strateji → grafik → bileşen → metrik |
+| Tarayıcı | filtre chip + sparkline + öne çıkanlar |
+| İsabet | çoklu ufuk + equity |
+| Ayarlar | gerçek tema, eşikler |
 
 ## Ağ
 
 `/public` trade+depth · `/market` kline 1/3/5/15 + mark + forceOrder · CG liq · REST 600 mum.
 
 ## CI
-
-`python -m unittest` + `:app:testDebugUnitTest` + `assembleDebug` → `app-debug`
 
 ```bash
 cd android && ./gradlew :app:testDebugUnitTest :app:assembleDebug

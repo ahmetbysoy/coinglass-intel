@@ -42,19 +42,41 @@ class ExchangeRest(private val client: OkHttpClient) {
     }
 
     suspend fun fetch(raw: String): ScoreInput = withContext(Dispatchers.IO) {
-        val info = Symbols.resolve(raw)
-        val pair = info.binance
-        val coin = info.base
-        coroutineScope {
-            val bn = async { binance(pair) }
-            val by = async { bybit(pair) }
-            val ok = async { okx(info.okx) }
-            val btc = async {
-                if (pair == "BTCUSDT") 0.0
-                else get("$BN/fapi/v1/ticker/24hr?symbol=BTCUSDT").asObj()?.num("priceChangePercent") ?: 0.0
+        val tried = Symbols.candidates(raw)
+        var last: ScoreInput? = null
+        for (cand in tried) {
+            val info = Symbols.resolve(cand)
+            val pair = info.binance
+            val built = coroutineScope {
+                val bn = async { binance(pair) }
+                val by = async { bybit(pair) }
+                val ok = async { okx(info.okx) }
+                val btc = async {
+                    if (pair == "BTCUSDT") 0.0
+                    else get("$BN/fapi/v1/ticker/24hr?symbol=BTCUSDT").asObj()?.num("priceChangePercent") ?: 0.0
+                }
+                merge(pair, bn.await(), by.await(), ok.await(), btc.await())
             }
-            merge(pair, bn.await(), by.await(), ok.await(), btc.await())
+            last = built
+            if (built.prices.any { it.price > 0 } || built.vol24 > 0 || built.oi > 0) return@withContext built
         }
+        last ?: ScoreInput(
+            symbol = Symbols.normalize(raw),
+            prices = emptyList(),
+            chg24 = 0.0,
+            vol24 = 0.0,
+            oi = 0.0,
+            oiHist = emptyList(),
+            orderBooks = emptyMap(),
+            trades = emptyList(),
+            fundingRates = emptyList(),
+            lsRatio = null,
+            takerHist = emptyList(),
+            klines5m = emptyList(),
+            klines15m = emptyList(),
+            klines1h = emptyList(),
+            restErrors = drainErrors(),
+        )
     }
 
     private data class Bundle(
@@ -271,7 +293,7 @@ class ExchangeRest(private val client: OkHttpClient) {
         }
     }
 
-    private fun get(url: String): JsonElement? {
+    private fun get(url: String, attempt: Int = 0): JsonElement? {
         val host = try { java.net.URI(url).host ?: url } catch (_: Exception) { url }
         return try {
             val req = Request.Builder()
@@ -280,6 +302,15 @@ class ExchangeRest(private val client: OkHttpClient) {
                 .header("Accept", "application/json")
                 .build()
             client.newCall(req).execute().use { resp ->
+                if (resp.code == 418 || resp.code == 429) {
+                    if (attempt < 3) {
+                        Thread.sleep(400L * (1L shl attempt))
+                        return get(url, attempt + 1)
+                    }
+                    errors += "$host HTTP ${resp.code}"
+                    android.util.Log.w("exfeed", "$host ${resp.code} $url")
+                    return null
+                }
                 if (!resp.isSuccessful) {
                     errors += "$host HTTP ${resp.code}"
                     android.util.Log.w("exfeed", "$host ${resp.code} $url")

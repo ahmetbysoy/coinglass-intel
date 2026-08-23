@@ -170,6 +170,17 @@ object MarketScorer {
         val strat = generateStrategy(
             price, direction, atrPct, fundingAvg, lsAvg, aggImb, total, struct, spoof, feed.minutesToFunding,
         )
+        val why = whyLine(aggImb, cvdPct, oiScore, fundingScore)
+        val verdict = Verdict.evaluate(
+            direction = direction,
+            score = total,
+            coverage = coverage,
+            confluence = confluence,
+            spoof = spoof,
+            risk = risk,
+            netRr = strat.netRr,
+            why = why,
+        )
 
         fun sig(raw: Double) = SimpleSignal(
             directionalScore = max(min(raw / 100.0, 1.0), -1.0),
@@ -254,8 +265,14 @@ object MarketScorer {
             bidWall = struct.bidWall,
             askWall = struct.askWall,
             slReason = strat.reason,
-            why = whyLine(aggImb, cvdPct, oiScore, fundingScore),
+            why = why,
             nextFundingMs = feed.nextFundingMs,
+            netRr = strat.netRr,
+            grade = verdict.grade,
+            verdict = verdict.line,
+            enterOk = verdict.enterOk,
+            poc = struct.poc,
+            divergeType = (divergence["type"] as? String).orEmpty(),
         )
     }
 
@@ -284,7 +301,14 @@ object MarketScorer {
         return min(spoof, 100)
     }
 
-    private data class Strat(val strategy: String, val warnings: List<String>, val sl: Double, val tp: Double, val reason: String)
+    private data class Strat(
+        val strategy: String,
+        val warnings: List<String>,
+        val sl: Double,
+        val tp: Double,
+        val reason: String,
+        val netRr: Double,
+    )
 
     private fun generateStrategy(
         price: Double,

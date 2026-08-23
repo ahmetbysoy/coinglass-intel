@@ -54,7 +54,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val chips = w.map { it.symbol }
         val lim = cfg.staleSeconds * 1000L
         val nowMs = System.currentTimeMillis()
-        fun stale(ms: Long) = ms > 0 && nowMs - ms > lim
         st.copy(
             chips = chips,
             inWatchlist = st.symbol.isNotBlank() && chips.contains(st.symbol),
@@ -62,9 +61,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             hit = h,
             restErrors = st.restErrors,
             liqSeen = st.liqSeen,
-            fresh = st.fresh.copy(
-                priceMs = if (stale(st.fresh.priceMs)) st.fresh.priceMs else st.fresh.priceMs,
-            ),
+            fresh = st.fresh,
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, IntelUiState())
 

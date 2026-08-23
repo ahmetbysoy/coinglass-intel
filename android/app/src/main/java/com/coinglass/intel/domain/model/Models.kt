@@ -56,6 +56,7 @@ data class SourceFresh(
     val oiMs: Long = 0L,
     val fundMs: Long = 0L,
     val obMs: Long = 0L,
+    val restMs: Long = 0L,
 )
 
 data class OrderBook(
@@ -155,6 +156,12 @@ data class V4Report(
     val hit: HitRate = HitRate(),
     val why: String = "",
     val nextFundingMs: Long = 0L,
+    val netRr: Double = 0.0,
+    val grade: String = "C",
+    val verdict: String = "",
+    val enterOk: Boolean = false,
+    val poc: Double = 0.0,
+    val divergeType: String = "",
 )
 
 data class LaneStats(

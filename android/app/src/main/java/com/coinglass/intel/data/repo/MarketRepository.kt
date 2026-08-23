@@ -66,6 +66,7 @@ class MarketRepository(
     private var oiMs = 0L
     private var fundMs = 0L
     private var obMs = 0L
+    private var restMs = 0L
 
     fun setBoost(b: Map<String, Double>) {
         boost = b
@@ -125,7 +126,9 @@ class MarketRepository(
         liqShort = 0.0
         liqSeen = false
         bookHist.clear()
-        priceMs = 0L; oiMs = 0L; fundMs = 0L; obMs = 0L
+        priceMs = 0L; oiMs = 0L; fundMs = 0L; obMs = 0L; restMs = 0L
+        binance.stop()
+        cg.stop()
         _state.update {
             it.copy(
                 symbol = next,
@@ -154,6 +157,7 @@ class MarketRepository(
     private suspend fun refreshRest() {
         runCatching {
             restSnap = rest.fetch(symbol)
+            restMs = System.currentTimeMillis()
             publish()
         }.onFailure {
             _state.update { s -> s.copy(statusLine = "REST: ${(it.message ?: "hata").take(80)}") }
@@ -162,10 +166,15 @@ class MarketRepository(
 
     private fun onEvent(ev: StreamEvent) {
         val want = symbol
-        if (ev.symbol.isNotBlank() && ev.kind != "liquidation") {
-            if (Symbols.normalize(ev.symbol) != want && ev.kind != "other") {
-                // still accept depth/trade if stream matches current
-            }
+        if (want.isBlank()) return
+        if (ev.kind == "liquidation") {
+            val evBase = Symbols.base(ev.symbol)
+            val wantBase = Symbols.base(want)
+            if (ev.symbol.isNotBlank() && evBase.isNotBlank() && evBase != wantBase &&
+                evBase != "1000$wantBase" && wantBase != "1000$evBase"
+            ) return
+        } else if (ev.symbol.isNotBlank() && Symbols.normalize(ev.symbol) != want) {
+            return
         }
         when (ev.kind) {
             "trade" -> {
@@ -305,7 +314,7 @@ class MarketRepository(
                 candles5m = c5,
                 candles15m = c15,
                 chartTf = chartTf,
-                fresh = SourceFresh(priceMs, oiMs, fundMs, obMs),
+                fresh = SourceFresh(priceMs, oiMs, fundMs, obMs, restMs),
                 restErrors = input.restErrors,
                 liqSeen = liqSeen,
                 conn = ConnStats(

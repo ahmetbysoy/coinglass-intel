@@ -16,6 +16,23 @@ object Symbols {
         return info(base).copy(symbol = s, binance = s, bybit = s)
     }
 
+    /** Exchange naming convention, not a coin list: 1000PEPE / 1MPEPE style. */
+    fun leveragedForms(symbol: String): List<String> {
+        val s = normalize(symbol)
+        if (s.isBlank()) return emptyList()
+        val b = base(s)
+        val quote = when {
+            s.endsWith("USDT") -> "USDT"
+            s.endsWith("USDC") -> "USDC"
+            s.endsWith("USD") -> "USD"
+            else -> "USDT"
+        }
+        if (b.startsWith("1000") || b.startsWith("1000000") || b.startsWith("1M")) return listOf(s)
+        return listOf(s, "1000$b$quote", "1M$b$quote", "1000000$b$quote").distinct()
+    }
+
+    fun candidates(raw: String): List<String> = leveragedForms(raw)
+
     fun normalize(raw: String): String {
         var s = raw.uppercase()
             .replace("-PERP", "")

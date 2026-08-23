@@ -1,3 +1,3 @@
-Grafik: 1m 3m 5m 15m chip. REST 600 seed, WS ezmez. Ekranda son 90 mum.
+v1.2: gerçek light/dark, tek satır karar + GİRME, VAL/VAH bant, scanner filtre.
 
-Spoof>50 duvarı SL yapmaz. netRR fee dahil. Skor 1m/3m/5m/15m.
+Sembol race drop. REST 600 seed WS ezmez. Spoof>50 duvar SL değil.

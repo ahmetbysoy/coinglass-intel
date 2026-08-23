@@ -12,16 +12,17 @@ data class StructureLevels(
     val resistance: Double = 0.0,
     val bidWall: Double = 0.0,
     val askWall: Double = 0.0,
+    val poc: Double = 0.0,
 )
 
 object Structure {
     /** Volume-weighted value area (POC band). VAL ≈ support, VAH ≈ resistance. */
-    fun volumeArea(rows: List<Candle>, bins: Int = 24): Pair<Double, Double> {
-        if (rows.size < 8) return 0.0 to 0.0
+    fun volumeArea(rows: List<Candle>, bins: Int = 24): Triple<Double, Double, Double> {
+        if (rows.size < 8) return Triple(0.0, 0.0, 0.0)
         val s = rows.sortedBy { it.openTime }.takeLast(120)
         val lo = s.minOf { it.low }
         val hi = s.maxOf { it.high }
-        if (hi <= lo) return 0.0 to 0.0
+        if (hi <= lo) return Triple(0.0, 0.0, 0.0)
         val step = (hi - lo) / bins
         val vol = DoubleArray(bins)
         for (c in s) {
@@ -30,7 +31,7 @@ object Structure {
             vol[i] += c.volume
         }
         val tot = vol.sum()
-        if (tot <= 0) return 0.0 to 0.0
+        if (tot <= 0) return Triple(0.0, 0.0, 0.0)
         val poc = vol.indices.maxBy { vol[it] }
         var acc = vol[poc]
         var a = poc
@@ -49,7 +50,8 @@ object Structure {
         }
         val vah = lo + (b + 1) * step
         val val_ = lo + a * step
-        return val_ to vah
+        val pocPx = lo + (poc + 0.5) * step
+        return Triple(val_, pocPx, vah)
     }
 
     fun walls(book: OrderBook?): Pair<Double, Double> {
@@ -60,9 +62,9 @@ object Structure {
     }
 
     fun from(candles: List<Candle>, book: OrderBook?): StructureLevels {
-        val (s, r) = volumeArea(candles)
+        val (s, poc, r) = volumeArea(candles)
         val (bw, aw) = walls(book)
-        return StructureLevels(s, r, bw, aw)
+        return StructureLevels(support = s, resistance = r, bidWall = bw, askWall = aw, poc = poc)
     }
 
     /**
