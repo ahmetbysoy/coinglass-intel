@@ -3,6 +3,7 @@ package com.coinglass.intel.ui
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -15,10 +16,12 @@ class ChartViewState(
     visible: Int = ChartSeries.VISIBLE_BARS,
     offsetFromEnd: Int = 0,
     flags: Int = FLAG_HEAT or FLAG_VOL,
+    priceZoom: Float = 1f,
 ) {
     var visible by mutableIntStateOf(visible)
     var offsetFromEnd by mutableIntStateOf(offsetFromEnd)
     var flags by mutableIntStateOf(flags)
+    var priceZoom by mutableFloatStateOf(priceZoom.coerceIn(0.4f, 3f))
 
     val following: Boolean get() = offsetFromEnd == 0
 
@@ -46,6 +49,10 @@ class ChartViewState(
 
     fun jumpToLive() { offsetFromEnd = 0 }
 
+    fun nudgePriceZoom(dy01: Float) {
+        priceZoom = (priceZoom * (1f + dy01 * 2.2f)).coerceIn(0.4f, 3f)
+    }
+
     companion object {
         const val FLAG_OB = 1
         const val FLAG_FVG = 2
@@ -62,5 +69,7 @@ class ChartViewState(
 }
 
 @Composable
-fun rememberChartViewState(): ChartViewState =
-    rememberSaveable(saver = ChartViewState.Saver) { ChartViewState() }
+fun rememberChartViewState(initialVisible: Int = ChartSeries.VISIBLE_BARS): ChartViewState =
+    rememberSaveable(saver = ChartViewState.Saver) {
+        ChartViewState(visible = initialVisible.coerceIn(ChartViewport.MIN_BARS, ChartViewport.MAX_BARS))
+    }

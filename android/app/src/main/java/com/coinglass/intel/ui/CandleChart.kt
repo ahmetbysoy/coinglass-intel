@@ -23,9 +23,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -84,12 +86,17 @@ fun CandleChart(
     chartHeight: Dp = 320.dp,
     smc: Smc.Report = Smc.Report(),
     modifier: Modifier = Modifier,
+    initialVisible: Int = ChartSeries.VISIBLE_BARS,
+    onVisibleChange: (Int) -> Unit = {},
 ) {
     val scheme = MaterialTheme.colorScheme
     val accent = scheme.primary
-    val state = rememberChartViewState()
+    val state = rememberChartViewState(initialVisible)
     val measurer = rememberTextMeasurer()
     var hitIdx by remember { mutableIntStateOf(-1) }
+    var hitFrac by remember { mutableFloatStateOf(-1f) }
+    var flingKick by remember { mutableIntStateOf(0) }
+    var flingVel by remember { mutableFloatStateOf(0f) }
     var prevTotal by remember { mutableIntStateOf(candles.size) }
 
     val total = candles.size
@@ -106,7 +113,19 @@ fun CandleChart(
     val emaSlow = remember(candles) { Ema.of(candles.map { it.close }, 50) }
     LaunchedEffect(chartTf) {
         hitIdx = -1
+        hitFrac = -1f
         state.jumpToLive()
+    }
+    LaunchedEffect(state.visible) { onVisibleChange(state.visible) }
+    LaunchedEffect(flingKick, total) {
+        if (flingKick == 0) return@LaunchedEffect
+        var v = flingVel
+        while (kotlin.math.abs(v) > 0.2f) {
+            delay(16)
+            val step = v.roundToInt()
+            if (step != 0) state.pan(step, total)
+            v *= 0.88f
+        }
     }
     val tip = if (hitIdx in shown.indices) ChartHit.tip(shown, hitIdx, liqHeat) else null
     val lastClose = candles.lastOrNull()?.close ?: 0.0
@@ -139,34 +158,51 @@ fun CandleChart(
                         .padding(4.dp)
                         .pointerInput(total, state.visible) {
                             detectTransformGestures { centroid, panDelta, zoom, _ ->
-                                if (zoom != 1f) {
-                                    state.zoom(zoom, (centroid.x / size.width).coerceIn(0f, 1f), total)
-                                }
-                                if (panDelta.x != 0f) {
-                                    val slot = size.width.toFloat() / state.visible.coerceAtLeast(1)
+                                val fx = (centroid.x / size.width).coerceIn(0f, 1f)
+                                if (zoom != 1f) state.zoom(zoom, fx, total)
+                                if (fx > 0.88f && panDelta.y != 0f) {
+                                    state.nudgePriceZoom(panDelta.y / size.height)
+                                } else if (panDelta.x != 0f) {
+                                    val slots = ChartViewport.slotCount(state.visible, state.following).coerceAtLeast(1)
+                                    val slot = size.width.toFloat() / slots
                                     val bars = (panDelta.x / slot).roundToInt()
-                                    if (bars != 0) state.pan(bars, total)
+                                    if (bars != 0) {
+                                        state.pan(bars, total)
+                                        flingVel = bars.toFloat()
+                                        flingKick++
+                                    }
                                 }
                             }
                         }
                         .pointerInput(shown.size) {
                             detectTapGestures(
                                 onTap = { off ->
-                                    hitIdx = ChartHit.index(off.x, size.width.toFloat(), shown.size) ?: -1
+                                    val slots = ChartViewport.slotCount(shown.size, state.following)
+                                    hitIdx = ChartHit.index(off.x, size.width.toFloat(), slots) ?: -1
+                                    if (hitIdx >= shown.size) hitIdx = shown.lastIndex
+                                    hitFrac = (off.x / size.width).coerceIn(0f, 1f)
                                 },
                                 onDoubleTap = {
                                     state.reset()
+                                    state.priceZoom = 1f
                                     hitIdx = -1
+                                    hitFrac = -1f
                                 },
                             )
                         }
                         .pointerInput(shown.size) {
                             detectDragGesturesAfterLongPress(
                                 onDragStart = { off ->
-                                    hitIdx = ChartHit.index(off.x, size.width.toFloat(), shown.size) ?: -1
+                                    val slots = ChartViewport.slotCount(shown.size, state.following)
+                                    hitIdx = ChartHit.index(off.x, size.width.toFloat(), slots) ?: -1
+                                    if (hitIdx >= shown.size) hitIdx = shown.lastIndex
+                                    hitFrac = (off.x / size.width).coerceIn(0f, 1f)
                                 },
                                 onDrag = { change, _ ->
-                                    hitIdx = ChartHit.index(change.position.x, size.width.toFloat(), shown.size) ?: hitIdx
+                                    val slots = ChartViewport.slotCount(shown.size, state.following)
+                                    hitIdx = ChartHit.index(change.position.x, size.width.toFloat(), slots) ?: hitIdx
+                                    if (hitIdx >= shown.size) hitIdx = shown.lastIndex
+                                    hitFrac = (change.position.x / size.width).coerceIn(0f, 1f)
                                     change.consume()
                                 },
                             )
@@ -210,6 +246,21 @@ fun CandleChart(
                 scheme = scheme,
                 modifier = Modifier.align(Alignment.TopStart),
             )
+            if (tip != null && hitFrac >= 0f) {
+                Text(
+                    tip.line,
+                    color = Color.White,
+                    fontSize = 10.sp,
+                    fontFamily = FontFamily.Monospace,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(top = 78.dp)
+                        .padding(start = (8 + hitFrac * 40).dp)
+                        .clip(RoundedCornerShape(Radii.sm))
+                        .background(Color(0xCC08141C))
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                )
+            }
             if (!state.following) {
                 Text(
                     "CANLI",
@@ -225,15 +276,6 @@ fun CandleChart(
                         .padding(horizontal = Space.sm, vertical = 4.dp),
                 )
             }
-        }
-        if (tip != null) {
-            Text(
-                tip.line,
-                color = scheme.onSurface,
-                fontSize = 11.sp,
-                fontFamily = FontFamily.Monospace,
-                modifier = Modifier.padding(horizontal = Space.sm, vertical = 4.dp),
-            )
         }
     }
 }
@@ -269,7 +311,11 @@ private fun DrawScope.drawChart(
     val lo0 = shown.minOf { it.low }
     val hi0 = shown.maxOf { it.high }
     val (locVal, locPoc, locVah) = localVa
-    val (lo, hi) = ChartRange.bounds(lo0, hi0, listOf(entry, sl, tp, locPoc))
+    val raw = ChartRange.bounds(lo0, hi0, listOf(entry, sl, tp, locPoc))
+    val mid = (raw.first + raw.second) / 2.0
+    val half = ((raw.second - raw.first) / 2.0) * state.priceZoom.toDouble()
+    val lo = mid - half
+    val hi = mid + half
     val span = (hi - lo).let { if (it <= 0) 1.0 else it }
     fun y(p: Double) = (candleH * (1f - ((p - lo) / span).toFloat())).coerceIn(0f, candleH)
     val n = shown.size

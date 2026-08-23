@@ -26,6 +26,7 @@ data class UserSettings(
     val onboardDone: Boolean = false,
     val opportunityNotify: Boolean = false,
     val autoPaper: Boolean = false,
+    val chartVisibleBars: Int = 90,
 )
 
 class SettingsStore(private val ctx: Context) {
@@ -42,6 +43,7 @@ class SettingsStore(private val ctx: Context) {
     private val ONB = booleanPreferencesKey("onboard_done")
     private val OPP = booleanPreferencesKey("opp_notify")
     private val PAPER = booleanPreferencesKey("auto_paper")
+    private val CHART_N = intPreferencesKey("chart_visible")
 
     val flow: Flow<UserSettings> = ctx.dataStore.data.map { p ->
         UserSettings(
@@ -58,6 +60,7 @@ class SettingsStore(private val ctx: Context) {
             onboardDone = p[ONB] ?: false,
             opportunityNotify = p[OPP] ?: false,
             autoPaper = p[PAPER] ?: false,
+            chartVisibleBars = p[CHART_N] ?: 90,
         )
     }
 
@@ -77,6 +80,7 @@ class SettingsStore(private val ctx: Context) {
                 onboardDone = p[ONB] ?: false,
                 opportunityNotify = p[OPP] ?: false,
                 autoPaper = p[PAPER] ?: false,
+                chartVisibleBars = p[CHART_N] ?: 90,
             )
             val n = block(cur)
             p[LIQ] = n.liqAlertUsd
@@ -92,6 +96,7 @@ class SettingsStore(private val ctx: Context) {
             p[ONB] = n.onboardDone
             p[OPP] = n.opportunityNotify
             p[PAPER] = n.autoPaper
+            p[CHART_N] = n.chartVisibleBars
         }
     }
 }

@@ -42,6 +42,12 @@ class ChartViewportTest {
     }
 
     @Test
+    fun liveAddsRightPad() {
+        assertEquals(95, ChartViewport.slotCount(90, following = true))
+        assertEquals(90, ChartViewport.slotCount(90, following = false))
+    }
+
+    @Test
     fun emptyTotalIsEmptyWindow() {
         val w = ChartViewport.window(0, 90, 0)
         assertEquals(0, w.size)

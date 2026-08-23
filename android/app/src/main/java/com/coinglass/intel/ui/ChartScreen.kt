@@ -16,6 +16,7 @@ import com.coinglass.intel.ui.theme.Space
 @Composable
 fun ChartScreen(vm: AppViewModel) {
     val state by vm.live.collectAsStateWithLifecycle()
+    val cfg by vm.settings.collectAsStateWithLifecycle()
     val scheme = MaterialTheme.colorScheme
     val r = state.report
     val candles = when (state.chartTf) {
@@ -47,6 +48,10 @@ fun ChartScreen(vm: AppViewModel) {
             spoof = r?.spoof ?: 0,
             divergeType = r?.divergeType.orEmpty(),
             liqHeat = state.liqHeat,
+            initialVisible = cfg.chartVisibleBars,
+            onVisibleChange = { n ->
+                if (n != cfg.chartVisibleBars) vm.updateSettings { it.copy(chartVisibleBars = n) }
+            },
             modifier = Modifier.weight(1f).fillMaxWidth(),
         )
     }

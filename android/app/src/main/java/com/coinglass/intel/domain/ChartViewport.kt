@@ -6,6 +6,10 @@ import kotlin.math.roundToInt
 object ChartViewport {
     const val MIN_BARS = 30
     const val MAX_BARS = 400
+    const val RIGHT_PAD = 5
+
+    fun slotCount(shown: Int, following: Boolean): Int =
+        shown + if (following) RIGHT_PAD else 0
 
     data class Window(val start: Int, val endExclusive: Int) {
         val size: Int get() = (endExclusive - start).coerceAtLeast(0)

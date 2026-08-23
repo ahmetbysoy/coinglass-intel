@@ -18,7 +18,7 @@ A/B + enterOk iken **KAĞIT AÇ**. SL/TP veya 15dk timeout. Emir gitmez.
 
 ## Grafik
 
-Tam ekran (DOM yok). Chrome overlay. Tap / uzun bas-sürükle **crosshair**. VAL/VAH ince çizgi. Fiyat ekseni kutulu. DOM + ısı + metrics → **Nabız**.
+Tam ekran viewport. Pinch odak + pan + fling. Sağ kenar fiyat zoom. Canlıda 5 bar pad. Zoom DataStore’da. Tooltip parmağın yanında. HTML envanter: [`CHART-HTML.md`](CHART-HTML.md).
 
 ## Likidasyon haritası
 
