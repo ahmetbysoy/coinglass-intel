@@ -3,6 +3,7 @@ package com.coinglass.intel.data.repo
 import com.coinglass.intel.data.rest.ExchangeRest
 import com.coinglass.intel.data.ws.BinanceDualWs
 import com.coinglass.intel.data.ws.CoinGlassLiqWs
+import com.coinglass.intel.data.ws.CrossBookWs
 import com.coinglass.intel.domain.Analyzers
 import com.coinglass.intel.domain.ChartSeries
 import com.coinglass.intel.domain.MarketScorer
@@ -40,6 +41,7 @@ class MarketRepository(
     private val rest = ExchangeRest(restClient)
     private val binance = BinanceDualWs(wsClient, externalScope)
     private val cg = CoinGlassLiqWs(wsClient, externalScope)
+    private val cross = CrossBookWs(wsClient, externalScope)
 
     private val _state = MutableStateFlow(IntelUiState())
     val state: StateFlow<IntelUiState> = _state.asStateFlow()
@@ -49,6 +51,8 @@ class MarketRepository(
     private var markPrice = 0.0
     private var liveFunding = 0.0
     private var liveBook: OrderBook? = null
+    private var bybitBook: OrderBook? = null
+    private var okxBook: OrderBook? = null
     private val liveTrades = ArrayDeque<TradePrint>()
     private val k1 = linkedMapOf<Double, Candle>()
     private val k3 = linkedMapOf<Double, Candle>()
@@ -67,6 +71,8 @@ class MarketRepository(
     private var fundMs = 0L
     private var obMs = 0L
     private var restMs = 0L
+    private var bybitMs = 0L
+    private var okxMs = 0L
 
     fun setBoost(b: Map<String, Double>) {
         boost = b
@@ -80,6 +86,9 @@ class MarketRepository(
             cg.events.collect { onEvent(it) }
         }
         externalScope.launch {
+            cross.events.collect { onEvent(it) }
+        }
+        externalScope.launch {
             while (isActive) {
                 _state.update {
                     it.copy(
@@ -87,6 +96,8 @@ class MarketRepository(
                             public = binance.publicStats.value,
                             market = binance.marketStats.value,
                             coinglass = cg.stats.value,
+                            bybit = cross.bybitStats.value,
+                            okx = cross.okxStats.value,
                         ),
                     )
                 }
@@ -117,6 +128,8 @@ class MarketRepository(
         markPrice = 0.0
         liveFunding = 0.0
         liveBook = null
+        bybitBook = null
+        okxBook = null
         liveTrades.clear()
         k1.clear()
         k3.clear()
@@ -126,9 +139,10 @@ class MarketRepository(
         liqShort = 0.0
         liqSeen = false
         bookHist.clear()
-        priceMs = 0L; oiMs = 0L; fundMs = 0L; obMs = 0L; restMs = 0L
+        priceMs = 0L; oiMs = 0L; fundMs = 0L; obMs = 0L; restMs = 0L; bybitMs = 0L; okxMs = 0L
         binance.stop()
         cg.stop()
+        cross.stop()
         _state.update {
             it.copy(
                 symbol = next,
@@ -141,6 +155,7 @@ class MarketRepository(
         }
         binance.start(next)
         cg.start(next)
+        cross.start(next)
         watchJob?.cancel()
         watchJob = externalScope.launch(Dispatchers.Default) {
             refreshRest()
@@ -191,20 +206,34 @@ class MarketRepository(
                 val bids = ev.extra["bids"] as? List<Pair<Double, Double>> ?: emptyList()
                 @Suppress("UNCHECKED_CAST")
                 val asks = ev.extra["asks"] as? List<Pair<Double, Double>> ?: emptyList()
-                liveBook = Analyzers.orderBook(bids, asks)
-                obMs = System.currentTimeMillis()
-                liveBook?.let { ob ->
-                    val medB = ob.bids.map { it.second }.sorted().let { if (it.isEmpty()) 1.0 else it[it.size / 2] }
-                    val medA = ob.asks.map { it.second }.sorted().let { if (it.isEmpty()) 1.0 else it[it.size / 2] }
-                    bookHist.addLast(
-                        BookSnap(
-                            ts = obMs,
-                            mid = ob.mid,
-                            bidWalls = ob.bids.filter { it.second >= medB * 8 }.take(6),
-                            askWalls = ob.asks.filter { it.second >= medA * 8 }.take(6),
-                        ),
-                    )
-                    while (bookHist.size > 24) bookHist.removeFirst()
+                val book = Analyzers.orderBook(bids, asks)
+                val src = ev.extra["src"]?.toString() ?: ev.exchange.lowercase()
+                when (src) {
+                    "bybit" -> {
+                        bybitBook = book
+                        bybitMs = System.currentTimeMillis()
+                    }
+                    "okx" -> {
+                        okxBook = book
+                        okxMs = System.currentTimeMillis()
+                    }
+                    else -> {
+                        liveBook = book
+                        obMs = System.currentTimeMillis()
+                        book?.let { ob ->
+                            val medB = ob.bids.map { it.second }.sorted().let { if (it.isEmpty()) 1.0 else it[it.size / 2] }
+                            val medA = ob.asks.map { it.second }.sorted().let { if (it.isEmpty()) 1.0 else it[it.size / 2] }
+                            bookHist.addLast(
+                                BookSnap(
+                                    ts = obMs,
+                                    mid = ob.mid,
+                                    bidWalls = ob.bids.filter { it.second >= medB * 8 }.take(6),
+                                    askWalls = ob.asks.filter { it.second >= medA * 8 }.take(6),
+                                ),
+                            )
+                            while (bookHist.size > 24) bookHist.removeFirst()
+                        }
+                    }
                 }
                 if (ev.price > 0 && livePrice == 0.0) livePrice = ev.price
             }
@@ -261,6 +290,8 @@ class MarketRepository(
 
         val books = (base?.orderBooks ?: emptyMap()).toMutableMap()
         liveBook?.let { books["binance"] = it }
+        bybitBook?.let { books["bybit"] = it }
+        okxBook?.let { books["okx"] = it }
 
         val trades = if (liveTrades.isNotEmpty()) liveTrades.toList() else base?.trades.orEmpty()
         val funding = when {
@@ -314,13 +345,17 @@ class MarketRepository(
                 candles5m = c5,
                 candles15m = c15,
                 chartTf = chartTf,
-                fresh = SourceFresh(priceMs, oiMs, fundMs, obMs, restMs),
+                fresh = SourceFresh(priceMs, oiMs, fundMs, obMs, restMs, bybitMs, okxMs),
                 restErrors = input.restErrors,
                 liqSeen = liqSeen,
+                bids = liveBook?.bids.orEmpty(),
+                asks = liveBook?.asks.orEmpty(),
                 conn = ConnStats(
                     public = binance.publicStats.value,
                     market = binance.marketStats.value,
                     coinglass = cg.stats.value,
+                    bybit = cross.bybitStats.value,
+                    okx = cross.okxStats.value,
                 ),
             )
         }

@@ -57,6 +57,8 @@ data class SourceFresh(
     val fundMs: Long = 0L,
     val obMs: Long = 0L,
     val restMs: Long = 0L,
+    val bybitMs: Long = 0L,
+    val okxMs: Long = 0L,
 )
 
 data class OrderBook(
@@ -175,6 +177,8 @@ data class ConnStats(
     val public: LaneStats = LaneStats("public"),
     val market: LaneStats = LaneStats("market"),
     val coinglass: LaneStats = LaneStats("coinglass"),
+    val bybit: LaneStats = LaneStats("bybit"),
+    val okx: LaneStats = LaneStats("okx"),
 )
 
 data class IntelUiState(

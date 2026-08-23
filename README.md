@@ -6,51 +6,25 @@ Sembol **hardcode değil**. Watchlist = senin yazdığın pair (Room). İlk aç�
 
 ## Karar katmanı
 
-Ekranın en üstü artık sayı yığını değil:
+- **Tek satır karar** + A/B/C/D
+- **GİRME** kırmızı şerit: spoof≥50 / coverage<%40 / netRR<1
+- Pozisyon boyutu: bakiye × risk% / SL mesafesi (emir yok)
 
-- **Tek satır karar** + A/B/C/D notu (coverage + confluence + spoof + risk + netRR)
-- **GİRME** kırmızı şerit: spoof≥50 veya coverage<%40 veya netRR<1
-- Spoof 50+ ise kart açıkça der: SL duvarı yok, ATR+VAL
+## DOM + cross-exchange
 
-## Tema (artık yalan değil)
+Canlı order book heatmap (spoof duvar sarı). Bybit `orderbook.1` + OKX `bbo-tbt` hafif WS — REST yaşı SourceStale'de BY/OKX.
 
-`MaterialTheme.colorScheme` + `Space`/`Radii` token. Ayarlar → Koyu tema kapanınca **tüm ekranlar** açık (pastel zemin) olur. Yeşil/kırmızı skor pastelleşmez.
+## Tema
+
+`colorScheme` + `Space`/`Radii`. Açık tema pastel zemin, skor yeşil/kırmızı pastelleşmez.
 
 ## Grafik
 
-Sadece **1m / 3m / 5m / 15m** chip.
+**1m / 3m / 5m / 15m**. REST 600 seed, WS ezmez. VAL/VAH bant, POC, spoof kesikli.
 
-REST **600 mum** seed. WS ezmez. Ekranda 60/90/150 pencere, yatay kaydırma.
+## Tarayıcı
 
-VAL/VAH **bant**, POC çizgi. Spoof duvarı kesikli/sarı. CVD divergence nokta.
-
-## Skor
-
-Confluence ve momentum **1m + 3m + 5m + 15m**. 1h sadece ATR yedek.
-
-`Mom` ayrı `momentum` sinyali. `netRR` fee + yakın funding dahil.
-
-## Bugfix (audit)
-
-- Sembol değişince eski WS event **drop** (B3)
-- Watchlist tarama `chunked(5)+200ms`, 418/429 backoff (B4)
-- FGS açıkken ScoreWorker taramaz (B8)
-- `PEPE` → `1000PEPEUSDT` format denemesi (liste değil, 1000/1M kuralı)
-- REST yaşı SourceStale'de
-- İsabet: 5m / 15m / 1h + equity + bileşen wr
-
-## Ekranlar
-
-| Tab | |
-|---|---|
-| Canlı | KARAR → fiyat → strateji → grafik → bileşen → metrik |
-| Tarayıcı | filtre chip + sparkline + öne çıkanlar |
-| İsabet | çoklu ufuk + equity |
-| Ayarlar | gerçek tema, eşikler |
-
-## Ağ
-
-`/public` trade+depth · `/market` kline 1/3/5/15 + mark + forceOrder · CG liq · REST 600 mum.
+Filtre chip, sparkline, liste/grid, öne çıkanlar. ScanCoordinator: FGS ve Worker tek yol, spam = 10dk + Δskor<8 sessiz.
 
 ## CI
 

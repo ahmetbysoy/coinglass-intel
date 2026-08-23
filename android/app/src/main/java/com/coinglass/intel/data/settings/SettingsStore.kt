@@ -21,6 +21,8 @@ data class UserSettings(
     val darkTheme: Boolean = true,
     val serviceEnabled: Boolean = false,
     val lastSymbol: String = "",
+    val equityUsd: Double = 1_000.0,
+    val riskPct: Double = 1.0,
 )
 
 class SettingsStore(private val ctx: Context) {
@@ -32,6 +34,8 @@ class SettingsStore(private val ctx: Context) {
     private val DARK = booleanPreferencesKey("dark")
     private val SVC = booleanPreferencesKey("svc")
     private val LAST = stringPreferencesKey("last_symbol")
+    private val EQ = doublePreferencesKey("equity_usd")
+    private val RISK = doublePreferencesKey("risk_pct")
 
     val flow: Flow<UserSettings> = ctx.dataStore.data.map { p ->
         UserSettings(
@@ -43,6 +47,8 @@ class SettingsStore(private val ctx: Context) {
             darkTheme = p[DARK] ?: true,
             serviceEnabled = p[SVC] ?: false,
             lastSymbol = p[LAST] ?: "",
+            equityUsd = p[EQ] ?: 1_000.0,
+            riskPct = p[RISK] ?: 1.0,
         )
     }
 
@@ -57,6 +63,8 @@ class SettingsStore(private val ctx: Context) {
                 darkTheme = p[DARK] ?: true,
                 serviceEnabled = p[SVC] ?: false,
                 lastSymbol = p[LAST] ?: "",
+                equityUsd = p[EQ] ?: 1_000.0,
+                riskPct = p[RISK] ?: 1.0,
             )
             val n = block(cur)
             p[LIQ] = n.liqAlertUsd
@@ -67,6 +75,8 @@ class SettingsStore(private val ctx: Context) {
             p[DARK] = n.darkTheme
             p[SVC] = n.serviceEnabled
             p[LAST] = n.lastSymbol
+            p[EQ] = n.equityUsd
+            p[RISK] = n.riskPct
         }
     }
 }

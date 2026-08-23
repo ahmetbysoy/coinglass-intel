@@ -77,6 +77,12 @@ fun SettingsScreen(
             SliderRow("Bayat veri (sn)", s.staleSeconds.toDouble(), 5.0, 120.0, "%.0f") {
                 onChange { c -> c.copy(staleSeconds = it.toInt()) }
             }
+            SliderRow("Bakiye $", s.equityUsd, 100.0, 100_000.0, "%.0f") {
+                onChange { c -> c.copy(equityUsd = it) }
+            }
+            SliderRow("Risk % / islem", s.riskPct, 0.25, 5.0, "%.2f") {
+                onChange { c -> c.copy(riskPct = it) }
+            }
         }
         Spacer(Modifier.height(Space.xl))
         Text(

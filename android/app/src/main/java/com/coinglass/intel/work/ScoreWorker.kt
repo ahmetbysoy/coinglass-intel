@@ -7,12 +7,10 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.coinglass.intel.IntelApp
-import com.coinglass.intel.alert.AlertNotifier
 import com.coinglass.intel.data.db.AppDb
 import com.coinglass.intel.data.settings.SettingsStore
 import kotlinx.coroutines.flow.first
 import java.util.concurrent.TimeUnit
-import kotlin.math.abs
 
 class ScoreWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params) {
     override suspend fun doWork(): Result {
@@ -20,15 +18,11 @@ class ScoreWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx,
         val db = AppDb.get(applicationContext)
         val settings = SettingsStore(applicationContext).flow.first()
         if (settings.serviceEnabled) return Result.success()
-        WatchlistScanner(app.restClient, db).scanAll()
-        if (settings.notificationsEnabled) {
-            val snaps = db.snap().all()
-            for (s in snaps) {
-                if (abs(s.score) >= settings.scoreAlertAbs) {
-                    AlertNotifier.scoreAlert(applicationContext, s.symbol, s.score, s.direction, s.price)
-                }
-            }
-        }
+        ScanCoordinator(app.restClient, db).scan(
+            notify = settings.notificationsEnabled,
+            ctx = applicationContext,
+            minAbs = settings.scoreAlertAbs,
+        )
         return Result.success()
     }
 

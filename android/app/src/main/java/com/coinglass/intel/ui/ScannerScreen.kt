@@ -15,6 +15,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -74,6 +77,7 @@ fun ScannerScreen(
     var maxSpoof by remember { mutableStateOf(100) }
     var minRr by remember { mutableStateOf(0.0) }
     var sort by remember { mutableStateOf(ScanSort.ABS_SCORE) }
+    var grid by remember { mutableStateOf(false) }
     val filtered = snaps.filter { it.risk <= maxRisk && it.spoof <= maxSpoof && abs(it.netRr) >= minRr }
     val ranked = when (sort) {
         ScanSort.ABS_SCORE -> filtered.sortedByDescending { abs(it.score) }
@@ -107,6 +111,7 @@ fun ScannerScreen(
             Chip("sıra ${sort.name.lowercase()}", scheme) {
                 sort = ScanSort.entries[(sort.ordinal + 1) % ScanSort.entries.size]
             }
+            Chip(if (grid) "grid" else "liste", scheme) { grid = !grid }
         }
         Spacer(Modifier.height(Space.sm))
         if (snaps.isEmpty()) {
@@ -128,6 +133,33 @@ fun ScannerScreen(
                 )
                 Spacer(Modifier.height(Space.sm))
             }
+        }
+        if (grid) {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(3),
+                horizontalArrangement = Arrangement.spacedBy(Space.sm),
+                verticalArrangement = Arrangement.spacedBy(Space.sm),
+                modifier = Modifier.weight(1f),
+            ) {
+                gridItems(ranked, key = { it.symbol }) { s ->
+                    val col = when {
+                        "BULL" in s.direction -> Bull
+                        "BEAR" in s.direction -> Bear
+                        else -> Warn
+                    }
+                    Column(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(Radii.md))
+                            .background(col.copy(alpha = (0.15f + 0.45f * (abs(s.score) / 100.0).toFloat()).coerceIn(0.15f, 0.6f)))
+                            .clickable { onOpen(s.symbol) }
+                            .padding(Space.sm),
+                    ) {
+                        Text(s.symbol.removeSuffix("USDT"), color = scheme.onSurface, fontWeight = FontWeight.Black, fontSize = 12.sp)
+                        Text("%+.0f".format(s.score), color = col, fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace)
+                    }
+                }
+            }
+            return@Column
         }
         LazyColumn(verticalArrangement = Arrangement.spacedBy(Space.sm)) {
             items(ranked, key = { it.symbol }) { s ->

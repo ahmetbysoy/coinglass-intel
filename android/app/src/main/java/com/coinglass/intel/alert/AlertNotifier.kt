@@ -56,7 +56,14 @@ object AlertNotifier {
             .build()
     }
 
-    fun scoreAlert(ctx: Context, symbol: String, score: Double, direction: String, price: Double) {
+    fun scoreAlert(
+        ctx: Context,
+        symbol: String,
+        score: Double,
+        direction: String,
+        price: Double,
+        priority: Boolean = false,
+    ) {
         ensureChannels(ctx)
         val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val open = PendingIntent.getActivity(
@@ -66,7 +73,7 @@ object AlertNotifier {
         )
         val n = NotificationCompat.Builder(ctx, CH_ALERT)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle("$symbol  ${"%+.1f".format(score)}  $direction")
+            .setContentTitle((if (priority) "★ " else "") + "$symbol  ${"%+.1f".format(score)}  $direction")
             .setContentText("fiyat ${fmtPrice(price)}  |skor|=${"%.1f".format(abs(score))}")
             .setContentIntent(open)
             .setAutoCancel(true)

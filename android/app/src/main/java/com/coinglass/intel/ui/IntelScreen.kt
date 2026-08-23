@@ -184,6 +184,12 @@ fun IntelScreen(vm: AppViewModel) {
             Spacer(Modifier.height(10.dp))
             PriceCard(state, r)
             Spacer(Modifier.height(10.dp))
+            ObHeatmap(state.bids, state.asks, r?.spoof ?: 0, r?.bidWall ?: 0.0, r?.askWall ?: 0.0)
+            Spacer(Modifier.height(10.dp))
+            PositionCard(r, cfg.equityUsd, cfg.riskPct)
+            Spacer(Modifier.height(10.dp))
+            LiqPulse(r, state.liqSeen)
+            Spacer(Modifier.height(10.dp))
             StrategyCard(r, state.hit.line, state.chartTf)
             Spacer(Modifier.height(10.dp))
             SourceStale(state, cfg.staleSeconds)
@@ -542,10 +548,17 @@ private fun WarnCard(items: List<String>) {
 
 @Composable
 private fun ConnBar(state: IntelUiState) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Space.sm)) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(Space.sm),
+    ) {
         LaneDot(state.conn.public)
         LaneDot(state.conn.market)
         LaneDot(state.conn.coinglass)
+        LaneDot(state.conn.bybit)
+        LaneDot(state.conn.okx)
     }
 }
 
@@ -641,8 +654,15 @@ private fun SourceStale(state: IntelUiState, staleSec: Int) {
         "fund" to tag(state.fresh.fundMs),
         "OB" to tag(state.fresh.obMs),
         "REST" to tag(state.fresh.restMs),
+        "BY" to tag(state.fresh.bybitMs),
+        "OKX" to tag(state.fresh.okxMs),
     )
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
         bits.forEach { (k, v) ->
             val bad = v != "ok"
             Text(
@@ -656,6 +676,54 @@ private fun SourceStale(state: IntelUiState, staleSec: Int) {
                     .padding(horizontal = Space.sm, vertical = Space.xs),
             )
         }
+    }
+}
+
+@Composable
+private fun PositionCard(r: V4Report?, equity: Double, riskPct: Double) {
+    val scheme = MaterialTheme.colorScheme
+    val plan = com.coinglass.intel.domain.PositionSizer.plan(equity, riskPct, r?.price ?: 0.0, r?.sl ?: 0.0)
+    Card {
+        Text("POZİSYON", color = scheme.onSurfaceVariant, fontSize = 11.sp, letterSpacing = 0.8.sp)
+        Text(
+            "bakiye ${fmtUsd(equity)}  risk %${"%.1f".format(riskPct)}  →  ${fmtUsd(plan.sizeUsd)}  qty ${"%.4f".format(plan.qty)}",
+            color = scheme.onSurface, fontSize = 13.sp, fontWeight = FontWeight.Medium,
+        )
+        Text(
+            "SL ${"%.2f".format(plan.slPct)}%  riske ${fmtUsd(plan.riskUsd)}  ·  emir yok, hesap",
+            color = scheme.onSurfaceVariant, fontSize = 11.sp,
+        )
+    }
+}
+
+@Composable
+private fun LiqPulse(r: V4Report?, seen: Boolean) {
+    if (!seen) return
+    val scheme = MaterialTheme.colorScheme
+    val l = r?.liqLong ?: 0.0
+    val s = r?.liqShort ?: 0.0
+    val tot = (l + s).let { if (it <= 0) 1.0 else it }
+    Card {
+        Text("LİKİDASYON NABZI", color = scheme.onSurfaceVariant, fontSize = 11.sp, letterSpacing = 0.8.sp)
+        Spacer(Modifier.height(Space.sm))
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier
+                    .weight((l / tot).toFloat().coerceIn(0.05f, 0.95f))
+                    .height(10.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(Bear),
+            )
+            Spacer(Modifier.width(4.dp))
+            Box(
+                Modifier
+                    .weight((s / tot).toFloat().coerceIn(0.05f, 0.95f))
+                    .height(10.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(Bull),
+            )
+        }
+        Text("L ${fmtUsd(l)}   S ${fmtUsd(s)}", color = scheme.onSurfaceVariant, fontSize = 11.sp, modifier = Modifier.padding(top = Space.xs))
     }
 }
 
