@@ -96,7 +96,7 @@ fun ScannerScreen(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.weight(1f)) {
-                Text("TARAYICI", color = scheme.primary, fontWeight = FontWeight.Black, letterSpacing = 1.2.sp, fontSize = 13.sp)
+                Text("RADAR", color = scheme.primary, fontWeight = FontWeight.Black, letterSpacing = 1.2.sp, fontSize = 13.sp)
                 Text("${ranked.size}/${snaps.size}  |skor|", color = scheme.onSurfaceVariant, fontSize = 11.sp)
             }
             IconButton(onClick = onRefresh, enabled = !scanning) {
