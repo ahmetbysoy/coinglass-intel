@@ -167,6 +167,7 @@ data class V4Report(
     val poc: Double = 0.0,
     val divergeType: String = "",
     val riskMode: String = "static",
+    val smcBoost: Int = 0,
 )
 
 data class LaneStats(

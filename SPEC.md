@@ -28,11 +28,11 @@ Saklanacak farklılaşma: spoof≥50 duvarı SL yapmaz, `netRR` fee+funding dü�
 
 | Var | Yok / kırık |
 |---|---|
-| Compose 6 tab, Room watchlist/snap/outcome/dedup/discovery | SMC (OB/FVG/sweep) |
-| Dual Binance WS + CG liq + Bybit/OKX BBO | Paper trade / backtest |
-| Verdict A–D, GİRME, netRR, pozisyon boyutu | Crosshair / tap-fiyat |
-| Liq heatmap (24 bin), DOM, VAL/VAH | Sembol bazlı çoklu alarm |
-| Radar = KEŞİF (ticker) + WATCHLIST | Haftalık/aylık open + margin sim |
+| Compose 6 tab, Room watchlist/snap/outcome/dedup/discovery | Paper trade / backtest |
+| Dual Binance WS + CG liq + Bybit/OKX BBO + SMC overlay | Crosshair / tap-fiyat |
+| Verdict A–D, GİRME, netRR, SMC +8, pozisyon boyutu | Sembol bazlı çoklu alarm |
+| Liq heatmap (24 bin), DOM, VAL/VAH | Haftalık/aylık open + margin sim |
+| Radar = KEŞİF (ticker) + WATCHLIST | — |
 | Python/Kotlin eğriler ayrı test | İki motoru birbirine karşı CI diff yok |
 | Karar tab ince (5 kart) | — |
 
@@ -106,7 +106,7 @@ Her faz: Kotlin unit test + `python -m unittest` + CI `assembleDebug` yeşil. RE
 
 ### FAZ 2 — SMC
 
-`domain/Smc.kt` — JS kopya yok.
+**yapıldı** (v1.9) `domain/Smc.kt` — JS kopya yok.
 
 - **Order block:** son 80 mumda impulse (gövde > 1.6× medyan) sonrası son karşıt mumun high-low kutusu. Max 6 OB.
 - **FVG:** 3 mum gap: `low[i] > high[i-2]` (bull) / `high[i] < low[i-2]` (bear). Doldurulmamış = hâlâ gap.
@@ -114,7 +114,7 @@ Her faz: Kotlin unit test + `python -m unittest` + CI `assembleDebug` yeşil. RE
 
 `Verdict`: yön ile aynı tarafta untouched OB veya FVG varsa `smcBoost` +8 (cap A). Overlay default **kapalı**, chip ile açılır.
 
-Test: sentetik 3-mum FVG, sweep wick, OB kutusu.
+Test: `SmcTest` — sentetik 3-mum FVG, sweep wick, OB kutusu, boost cap A.
 
 ### FAZ 3 — Paper + kalibrasyon
 

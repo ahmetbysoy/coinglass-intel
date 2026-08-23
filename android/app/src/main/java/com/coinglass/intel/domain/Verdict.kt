@@ -10,6 +10,7 @@ object Verdict {
         val enterOk: Boolean,
         val reasons: List<String>,
         val stars: Int,
+        val smcBoost: Int = 0,
     )
 
     fun evaluate(
@@ -21,6 +22,7 @@ object Verdict {
         risk: Int,
         netRr: Double,
         why: String,
+        smcBoost: Int = 0,
     ): Result {
         var pts = 0
         if (coverage >= 70) pts += 2 else if (coverage >= 40) pts += 1
@@ -28,6 +30,7 @@ object Verdict {
         if (spoof < 30) pts += 2 else if (spoof < 50) pts += 1
         if (risk < 40) pts += 2 else if (risk < 70) pts += 1
         if (netRr >= 1.5) pts += 1
+        pts += smcBoost.coerceAtLeast(0)
         val grade = when {
             pts >= 8 -> "A"
             pts >= 6 -> "B"
@@ -59,8 +62,9 @@ object Verdict {
         } else if (!directional) {
             "BEKLE • yön yok • $confWord"
         } else {
-            "$side • $confWord • $whyBit • spoof $spoof"
+            val smcBit = if (smcBoost > 0) " • SMC" else ""
+            "$side • $confWord • $whyBit • spoof $spoof$smcBit"
         }
-        return Result(grade, line, enterOk, reasons, stars)
+        return Result(grade, line, enterOk, reasons, stars, smcBoost = smcBoost.coerceAtLeast(0))
     }
 }

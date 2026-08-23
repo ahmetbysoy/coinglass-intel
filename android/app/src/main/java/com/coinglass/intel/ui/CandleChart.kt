@@ -23,7 +23,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.coinglass.intel.domain.ChartSeries
 import com.coinglass.intel.domain.LiqHeat
+import com.coinglass.intel.domain.Smc
 import com.coinglass.intel.domain.fmtPrice
 import com.coinglass.intel.domain.model.Candle
 import com.coinglass.intel.ui.theme.Bear
@@ -66,11 +69,15 @@ fun CandleChart(
     divergeType: String = "",
     liqHeat: LiqHeat.Grid = LiqHeat.Grid(),
     chartHeight: Dp = 188.dp,
+    smc: Smc.Report = Smc.Report(),
 ) {
     val heat = liqHeat
     val scheme = MaterialTheme.colorScheme
     val accent = scheme.primary
     var window by remember { mutableIntStateOf(ChartSeries.VISIBLE_BARS) }
+    var showOb by rememberSaveable { mutableStateOf(false) }
+    var showFvg by rememberSaveable { mutableStateOf(false) }
+    var showSweep by rememberSaveable { mutableStateOf(false) }
     val shown = ChartSeries.visible(candles, window)
     val scroll = rememberScrollState()
     LaunchedEffect(shown.size, chartTf) { scroll.scrollTo(scroll.maxValue) }
@@ -118,6 +125,13 @@ fun CandleChart(
                 )
             }
         }
+        Spacer(Modifier.height(6.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            OverlayChip("OB", showOb, scheme) { showOb = !showOb }
+            OverlayChip("FVG", showFvg, scheme) { showFvg = !showFvg }
+            OverlayChip("SWEEP", showSweep, scheme) { showSweep = !showSweep }
+            Text("heat on", color = scheme.onSurfaceVariant, fontSize = 10.sp, modifier = Modifier.padding(top = 6.dp))
+        }
         Text(
             "entry ${fmtPrice(entry)}  sl ${fmtPrice(sl)}  tp ${fmtPrice(tp)}" +
                 if (spoof >= 50) "  spoof-skip-wall" else "",
@@ -152,7 +166,12 @@ fun CandleChart(
                     val candleH = size.height - volH - 4f
                     val lows = shown.minOf { it.low }
                     val highs = shown.maxOf { it.high }
-                    val extra = listOf(entry, sl, tp, support, resistance, bidWall, askWall, poc).filter { it > 0 }
+                    val smcPx = buildList {
+                        if (showOb) smc.obs.forEach { add(it.low); add(it.high) }
+                        if (showFvg) smc.fvgs.forEach { add(it.low); add(it.high) }
+                        if (showSweep) smc.sweeps.forEach { add(it.low); add(it.high) }
+                    }
+                    val extra = (listOf(entry, sl, tp, support, resistance, bidWall, askWall, poc) + smcPx).filter { it > 0 }
                     val lo = (listOf(lows) + extra).min()
                     val hi = (listOf(highs) + extra).max()
                     val span = (hi - lo).let { if (it <= 0) 1.0 else it }
@@ -179,6 +198,33 @@ fun CandleChart(
                     val wallCol = if (spoof >= 50) Warn else accent
                     if (bidWall > 0) drawLine(wallCol.copy(alpha = 0.55f), Offset(0f, y(bidWall)), Offset(size.width, y(bidWall)), 1.4f, pathEffect = wallDash)
                     if (askWall > 0) drawLine(wallCol.copy(alpha = 0.55f), Offset(0f, y(askWall)), Offset(size.width, y(askWall)), 1.4f, pathEffect = wallDash)
+                    val origin = (candles.size - shown.size).coerceAtLeast(0)
+                    fun drawZone(z: com.coinglass.intel.domain.Smc.Zone, col: Color) {
+                        val x0i = z.startIdx - origin
+                        val endAbs = z.touchIdx ?: (origin + shown.lastIndex)
+                        val x1i = endAbs - origin
+                        if (x1i < 0 || x0i > shown.lastIndex) return
+                        val left = slot * x0i.coerceAtLeast(0)
+                        val right = slot * (x1i.coerceAtMost(shown.lastIndex) + 1)
+                        val top = y(z.high)
+                        val bot = y(z.low)
+                        val hh = kotlin.math.abs(bot - top).coerceAtLeast(2f)
+                        drawRect(col, Offset(left, minOf(top, bot)), Size((right - left).coerceAtLeast(2f), hh))
+                    }
+                    if (showOb) smc.obs.forEach { z ->
+                        drawZone(z, (if (z.side == "bull") Bull else Bear).copy(alpha = if (z.touched) 0.08f else 0.20f))
+                    }
+                    if (showFvg) smc.fvgs.filter { !it.touched }.forEach { z ->
+                        drawZone(z, (if (z.side == "bull") Bull else Bear).copy(alpha = 0.14f))
+                    }
+                    if (showSweep) smc.sweeps.forEach { z ->
+                        val xi = z.endIdx - origin
+                        if (xi in shown.indices) {
+                            val x = slot * xi + slot / 2f
+                            drawLine(Warn, Offset(0f, y(if (z.side == "bear") z.low else z.high)), Offset(size.width, y(if (z.side == "bear") z.low else z.high)), 1.2f, pathEffect = thin)
+                            drawCircle(Warn, radius = 4f, center = Offset(x, y(if (z.side == "bear") z.high else z.low)))
+                        }
+                    }
                     shown.forEachIndexed { i, c ->
                         val x = slot * i + slot / 2f
                         val up = c.close >= c.open
@@ -221,10 +267,25 @@ fun CandleChart(
         }
         Spacer(Modifier.height(6.dp))
         Text(
-            "pinch zoom · kaydir gecmis · VAL/VAH · kesikli=spoof" +
+            "pinch zoom · kaydir · VAL/VAH · SMC chip kapali" +
                 if (divergeType.isNotBlank()) " · CVD $divergeType" else "",
             color = scheme.onSurfaceVariant,
             fontSize = 10.sp,
         )
     }
+}
+
+@Composable
+private fun OverlayChip(label: String, on: Boolean, scheme: androidx.compose.material3.ColorScheme, click: () -> Unit) {
+    Text(
+        label,
+        color = if (on) scheme.onPrimary else scheme.onSurfaceVariant,
+        fontSize = 11.sp,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier
+            .clip(RoundedCornerShape(Radii.sm))
+            .background(if (on) scheme.primary else scheme.surfaceVariant)
+            .clickable(onClick = click)
+            .padding(horizontal = Space.sm, vertical = 4.dp),
+    )
 }

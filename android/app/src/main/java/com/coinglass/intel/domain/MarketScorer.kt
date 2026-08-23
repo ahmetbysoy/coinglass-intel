@@ -171,6 +171,9 @@ object MarketScorer {
             price, direction, atrPct, fundingAvg, lsAvg, aggImb, total, struct, spoof, feed.minutesToFunding,
         )
         val why = whyLine(aggImb, cvdPct, oiScore, fundingScore)
+        val smcBars = feed.klines15m.ifEmpty { feed.klines5m }.ifEmpty { feed.klines1m }
+        val smc = Smc.analyze(smcBars)
+        val smcBoost = if (smc.alignedUntouched(direction)) Smc.BOOST else 0
         val verdict = Verdict.evaluate(
             direction = direction,
             score = total,
@@ -180,6 +183,7 @@ object MarketScorer {
             risk = risk,
             netRr = strat.netRr,
             why = why,
+            smcBoost = smcBoost,
         )
 
         fun sig(raw: Double) = SimpleSignal(
@@ -274,6 +278,7 @@ object MarketScorer {
             poc = struct.poc,
             divergeType = (divergence["type"] as? String).orEmpty(),
             riskMode = Curves.riskMode(atrHist),
+            smcBoost = smcBoost,
         )
     }
 

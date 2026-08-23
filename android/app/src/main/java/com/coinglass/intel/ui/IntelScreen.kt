@@ -288,6 +288,12 @@ private fun VerdictCard(r: V4Report?) {
             Mini("spoof", "${r?.spoof ?: 0}", if ((r?.spoof ?: 0) >= 50) Bear else scheme.onSurface)
             Mini("risk", "${r?.risk ?: 0}${if (r?.riskMode == "percentile") " pctl" else " stat"}")
         }
+        if (r != null && r.smcBoost > 0) {
+            Text(
+                "SMC +" + r.smcBoost + " — aynı yönde boş OB/FVG",
+                color = scheme.primary, fontSize = 11.sp, modifier = Modifier.padding(top = Space.xs),
+            )
+        }
         if (r != null && r.spoof >= 50) {
             Text(
                 "spoof ${r.spoof} → SL duvarı yok, sadece ATR+VAL",
@@ -596,7 +602,7 @@ private fun Onboard() {
         Glossary("confluence", "timeframe oylari + hareket buyuklugu")
         Glossary("netRR", "TP/SL eksi fee ve yakin funding maliyeti")
         Glossary("grafik", "1m/3m/5m/15m chip; 600 mum REST seed, WS ezmez; VAL/VAH bant")
-        Glossary("not", "A/B/C/D = coverage+confluence+spoof+risk+netRR ozeti")
+        Glossary("not", "A/B/C/D = coverage+confluence+spoof+risk+netRR; SMC +8 ayni yon bos OB/FVG")
         Glossary("liq map", "forceOrder+CG liq fiyat kademesine yığılır; sol long, sağ short")
     }
 }

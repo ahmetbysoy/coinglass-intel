@@ -11,6 +11,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -42,6 +43,7 @@ fun ChartScreen(vm: AppViewModel) {
         Spacer(Modifier.height(Space.sm))
         CandleChart(
             candles = candles,
+            smc = remember(candles) { com.coinglass.intel.domain.Smc.analyze(candles) },
             entry = r?.price ?: 0.0,
             sl = r?.sl ?: 0.0,
             tp = r?.tp ?: 0.0,
