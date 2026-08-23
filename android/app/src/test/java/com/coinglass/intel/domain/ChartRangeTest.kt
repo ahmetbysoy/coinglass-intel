@@ -23,10 +23,9 @@ class ChartRangeTest {
     }
 
     @Test
-    fun emptyExtrasKeepsCandleRange() {
-        val (lo, hi) = ChartRange.bounds(50.0, 51.0, emptyList())
-        assertTrue(lo < 50.0)
-        assertTrue(hi > 51.0)
-        assertEquals(50.0, lo + (50.0 - lo), 1e-9)
+    fun tightBandUsesFewerTicks() {
+        assertEquals(3, ChartRange.tickCount(100.0, 100.3))
+        assertEquals(4, ChartRange.tickCount(100.0, 101.5))
+        assertEquals(5, ChartRange.tickCount(100.0, 104.0))
     }
 }

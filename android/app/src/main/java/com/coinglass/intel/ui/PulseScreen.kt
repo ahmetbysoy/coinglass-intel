@@ -68,7 +68,7 @@ fun PulseScreen(vm: AppViewModel) {
         )
         r?.warnings.orEmpty().forEach { Text("! $it", color = Warn, fontSize = 12.sp, modifier = Modifier.padding(top = Space.xs)) }
         Spacer(Modifier.height(Space.md))
-        LiqPulse(r, state.liqSeen)
+        DomBlock(state, r)
         Spacer(Modifier.height(Space.xl))
     }
 }

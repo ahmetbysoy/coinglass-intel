@@ -2,28 +2,21 @@ package com.coinglass.intel.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coinglass.intel.ui.theme.Space
 
 @Composable
 fun ChartScreen(vm: AppViewModel) {
     val state by vm.live.collectAsStateWithLifecycle()
-    val cfg by vm.settings.collectAsStateWithLifecycle()
     val scheme = MaterialTheme.colorScheme
-    val scroll = rememberScrollState()
     val r = state.report
     val candles = when (state.chartTf) {
         "1m" -> state.candles1m
@@ -35,12 +28,9 @@ fun ChartScreen(vm: AppViewModel) {
         modifier = Modifier
             .fillMaxSize()
             .background(scheme.background)
-            .padding(horizontal = Space.lg),
+            .padding(horizontal = Space.sm),
     ) {
         Header(state)
-        Spacer(Modifier.height(Space.sm))
-        SourceStale(state, cfg.staleSeconds)
-        Spacer(Modifier.height(Space.sm))
         CandleChart(
             candles = candles,
             smc = remember(candles) { com.coinglass.intel.domain.Smc.analyze(candles) },
@@ -57,37 +47,7 @@ fun ChartScreen(vm: AppViewModel) {
             spoof = r?.spoof ?: 0,
             divergeType = r?.divergeType.orEmpty(),
             liqHeat = state.liqHeat,
-            modifier = Modifier.weight(1.15f).fillMaxWidth(),
+            modifier = Modifier.weight(1f).fillMaxWidth(),
         )
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .verticalScroll(scroll),
-        ) {
-            Spacer(Modifier.height(10.dp))
-            ObHeatmap(state.bids, state.asks, r?.spoof ?: 0, r?.bidWall ?: 0.0, r?.askWall ?: 0.0)
-            Spacer(Modifier.height(10.dp))
-            LiqHeatmap(state.liqHeat, r?.price ?: state.lastPrice)
-            Spacer(Modifier.height(10.dp))
-            LiqPulse(r, state.liqSeen)
-            Spacer(Modifier.height(10.dp))
-            MetricsGrid(r, state.liqSeen)
-            if (state.restErrors.isNotEmpty()) {
-                Spacer(Modifier.height(Space.sm))
-                WarnCard(state.restErrors.take(4).map { "REST $it" })
-            }
-            Spacer(Modifier.height(10.dp))
-            TfRow(r?.tfPreds.orEmpty())
-            Spacer(Modifier.height(10.dp))
-            Components(r)
-            if (!r?.strategyWarnings.isNullOrEmpty()) {
-                Spacer(Modifier.height(10.dp))
-                WarnCard(r!!.strategyWarnings)
-            }
-            Spacer(Modifier.height(18.dp))
-            ConnBar(state)
-            Spacer(Modifier.height(Space.xl))
-        }
     }
 }

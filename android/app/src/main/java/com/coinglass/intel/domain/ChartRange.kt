@@ -29,4 +29,16 @@ object ChartRange {
 
     fun inView(px: Double, lo: Double, hi: Double): Boolean =
         px > 0.0 && px >= lo && px <= hi
+
+    /** Fewer ticks when the visible band is a few bps. */
+    fun tickCount(lo: Double, hi: Double): Int {
+        val mid = (lo + hi) / 2.0
+        if (mid <= 0.0 || hi <= lo) return 3
+        val pct = (hi - lo) / mid * 100.0
+        return when {
+            pct < 0.5 -> 3
+            pct < 2.0 -> 4
+            else -> 5
+        }
+    }
 }

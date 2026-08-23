@@ -1,3 +1,7 @@
+> v2 not (f857aea sonrası): ChartScreen 1.15:1 paylaşım + overlay yoktu.
+> 1.13: Grafik sekmesi yalnızca chart (`weight(1f)`), chrome overlay,
+> DOM bloğu `DomScreen`/`Nabız`. VAL çizgi, fiyat etiketi koyu kutu, adaptif tick.
+
 > Durum notu (kod, 2026-08-24): Bu analizdeki §2 SMC/paper/MTF boşluklarının
 > bir kısmı spec fazlarında kapandı (Faz 2 SMC, Faz 3 paper, Faz 7 crosshair).
 > **Hâlâ doğru ve acil:** §1 chart range bug (VAL/VAH + spoof duvarı mumları eziyor).
