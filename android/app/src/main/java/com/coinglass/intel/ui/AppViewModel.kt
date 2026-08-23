@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.coinglass.intel.IntelApp
 import com.coinglass.intel.alert.AlertService
 import com.coinglass.intel.data.db.AppDb
+import com.coinglass.intel.data.db.DiscoverySnapEntity
 import com.coinglass.intel.data.db.ScoreSnapEntity
 import com.coinglass.intel.data.db.WatchEntity
 import com.coinglass.intel.data.outcome.OutcomeTracker
@@ -18,6 +19,7 @@ import com.coinglass.intel.domain.Symbols
 import com.coinglass.intel.domain.model.HitRate
 import com.coinglass.intel.domain.model.IntelUiState
 import com.coinglass.intel.data.db.OutcomeEntity
+import com.coinglass.intel.work.MarketDiscovery
 import com.coinglass.intel.work.ScoreWorker
 import com.coinglass.intel.work.WatchlistScanner
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,6 +35,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val settingsStore = SettingsStore(app)
     private val repo = MarketRepository(intel.wsClient, intel.restClient, viewModelScope)
     private val scanner = WatchlistScanner(intel.restClient, db)
+    private val discovery = MarketDiscovery(intel.restClient, db)
     private val tracker = OutcomeTracker(db)
 
     val settings: StateFlow<UserSettings> = settingsStore.flow.stateIn(
@@ -42,6 +45,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope, SharingStarted.Eagerly, emptyList(),
     )
     val snaps: StateFlow<List<ScoreSnapEntity>> = db.snap().observe().stateIn(
+        viewModelScope, SharingStarted.Eagerly, emptyList(),
+    )
+    val discoverySnaps: StateFlow<List<DiscoverySnapEntity>> = db.discovery().observe().stateIn(
         viewModelScope, SharingStarted.Eagerly, emptyList(),
     )
     private val hit = MutableStateFlow(HitRate())
@@ -83,6 +89,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 kotlinx.coroutines.delay(1_000)
                 now.value = System.currentTimeMillis()
             }
+        }
+        viewModelScope.launch {
+            runCatching { discovery.discover() }
         }
         viewModelScope.launch {
             repo.state.collect { st ->
@@ -137,6 +146,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             scanning.value = true
             runCatching { scanner.scanAll() }
+            runCatching { discovery.discover() }
             scanning.value = false
         }
     }

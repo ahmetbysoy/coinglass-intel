@@ -1,7 +1,9 @@
 package com.coinglass.intel.data.rest
 
+import com.coinglass.intel.domain.DiscoveryPick
 import com.coinglass.intel.domain.JsonX
 import com.coinglass.intel.domain.Symbols
+import com.coinglass.intel.domain.Ticker24h
 import com.coinglass.intel.domain.asArr
 import com.coinglass.intel.domain.asDouble
 import com.coinglass.intel.domain.asObj
@@ -39,6 +41,11 @@ class ExchangeRest(private val client: OkHttpClient) {
         val out = errors.toList()
         errors.clear()
         out
+    }
+
+    fun fetchTickers24h(): List<Ticker24h> {
+        val el = get("$BN/fapi/v1/ticker/24hr")
+        return DiscoveryPick.fromJson(el)
     }
 
     suspend fun fetch(raw: String): ScoreInput = withContext(Dispatchers.IO) {

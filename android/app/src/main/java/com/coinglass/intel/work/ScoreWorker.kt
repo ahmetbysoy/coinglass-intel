@@ -18,10 +18,15 @@ class ScoreWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx,
         val db = AppDb.get(applicationContext)
         val settings = SettingsStore(applicationContext).flow.first()
         if (settings.serviceEnabled) return Result.success()
-        ScanCoordinator(app.restClient, db).scan(
+        val coord = ScanCoordinator(app.restClient, db)
+        coord.scan(
             notify = settings.notificationsEnabled,
             ctx = applicationContext,
             minAbs = settings.scoreAlertAbs,
+        )
+        coord.discover(
+            notify = settings.opportunityNotify && settings.notificationsEnabled,
+            ctx = applicationContext,
         )
         return Result.success()
     }

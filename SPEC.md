@@ -28,14 +28,13 @@ Saklanacak farklılaşma: spoof≥50 duvarı SL yapmaz, `netRR` fee+funding dü�
 
 | Var | Yok / kırık |
 |---|---|
-| Compose 4 tab, Room watchlist/snap/outcome | Otomatik piyasa keşfi |
-| Dual Binance WS + CG liq + Bybit/OKX BBO | SMC (OB/FVG/sweep) |
-| Verdict A–D, GİRME, netRR, pozisyon boyutu | Paper trade / backtest |
-| Liq heatmap (24 bin), DOM, VAL/VAH | Crosshair / tap-fiyat |
-| Scanner = watchlist skor paneli | Sembol bazlı çoklu alarm |
-| ScanCoordinator + widget | Dedup `last` map process-local — Worker her 15dk yeni instance, spam |
+| Compose 6 tab, Room watchlist/snap/outcome/dedup/discovery | SMC (OB/FVG/sweep) |
+| Dual Binance WS + CG liq + Bybit/OKX BBO | Paper trade / backtest |
+| Verdict A–D, GİRME, netRR, pozisyon boyutu | Crosshair / tap-fiyat |
+| Liq heatmap (24 bin), DOM, VAL/VAH | Sembol bazlı çoklu alarm |
+| Radar = KEŞİF (ticker) + WATCHLIST | Haftalık/aylık open + margin sim |
 | Python/Kotlin eğriler ayrı test | İki motoru birbirine karşı CI diff yok |
-| IntelScreen 12+ kart tek scroll | Karar 3 sn’de görünmüyor |
+| Karar tab ince (5 kart) | — |
 
 ---
 
@@ -128,18 +127,18 @@ Test: long, fiyat SL’ye iner → `win=false`. Dedup 120s aynı sembol ikinci p
 
 ### FAZ 4 — Radar keşif (ürünün neden açık kaldığı)
 
-**Sabit liste yok.**
+**Sabit liste yok.** **yapıldı** (v1.8)
 
-1. `GET /fapi/v1/ticker/24hr` → `quoteVolume`’a göre top **N=40** (USDT-M, `symbol.endsWith("USDT")`).
-2. Ön-filtre (tam scorer yok): `quoteVolume ≥ 20M` AND `|priceChangePercent| ≥ 1.2`. Max **K=12** tam `MarketScorer`.
+1. `GET /fapi/v1/ticker/24hr` → `quoteVolume` top **N=40** (USDT-M, `symbol.endsWith("USDT")`).
+2. Ön-filtre: `quoteVolume ≥ 20M` AND `|priceChangePercent| ≥ 1.2`. Max **K=12** tam `MarketScorer`.
 3. Throttle: `chunked(4) + delay(250)` + 418/429 backoff (mevcut ExchangeRest).
-4. Sonuç `DiscoverySnapEntity`. Watchlist’e otomatik **yazılmaz**.
-5. UI: “KEŞİF” / “WATCHLIST” segment. Keşif satırında `+` → `toggleWatch`.
-6. Fırsat bildirimi (ayar default **kapalı**): keşif + grade A/B + spoof&lt;40 + netRR≥1.5 + coverage≥50. Dedup tablosu aynı.
+4. Sonuç `DiscoverySnapEntity`. Watchlist'e otomatik **yazılmaz**.
+5. UI: KEŞİF / WATCHLIST segment. Keşif satırında `+` → `toggleWatch`.
+6. Fırsat bildirimi (ayar default **kapalı**): keşif + grade A/B + spoof<40 + netRR≥1.5 + coverage≥50. Dedup tablosu aynı.
 
-Worker: 15dk `ScoreWorker` içinde, FGS açıksa AlertService 30sn döngüsünde **keşif her 5. turda** (2.5dk değil, spam/rate-limit).
+Worker: 15dk `ScoreWorker` içinde, FGS açıksa AlertService 30sn döngüsünde **keşif her 5. turda**.
 
-Test: fixture ticker JSON → N/K seçimi; watchlist boşken keşif dolabilir; keşif BTC hardcode içermez (sadece volume sıralı).
+Test: `DiscoveryPickTest` + `ticker24h.json` → N/K seçimi; watchlist boşken keşif dolabilir; keşif BTC hardcode içermez (sadece volume sıralı).
 
 ### FAZ 5 — Alarm
 

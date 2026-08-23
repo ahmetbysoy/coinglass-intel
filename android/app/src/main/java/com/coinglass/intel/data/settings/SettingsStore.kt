@@ -24,6 +24,7 @@ data class UserSettings(
     val equityUsd: Double = 1_000.0,
     val riskPct: Double = 1.0,
     val onboardDone: Boolean = false,
+    val opportunityNotify: Boolean = false,
 )
 
 class SettingsStore(private val ctx: Context) {
@@ -38,6 +39,7 @@ class SettingsStore(private val ctx: Context) {
     private val EQ = doublePreferencesKey("equity_usd")
     private val RISK = doublePreferencesKey("risk_pct")
     private val ONB = booleanPreferencesKey("onboard_done")
+    private val OPP = booleanPreferencesKey("opp_notify")
 
     val flow: Flow<UserSettings> = ctx.dataStore.data.map { p ->
         UserSettings(
@@ -52,6 +54,7 @@ class SettingsStore(private val ctx: Context) {
             equityUsd = p[EQ] ?: 1_000.0,
             riskPct = p[RISK] ?: 1.0,
             onboardDone = p[ONB] ?: false,
+            opportunityNotify = p[OPP] ?: false,
         )
     }
 
@@ -69,6 +72,7 @@ class SettingsStore(private val ctx: Context) {
                 equityUsd = p[EQ] ?: 1_000.0,
                 riskPct = p[RISK] ?: 1.0,
                 onboardDone = p[ONB] ?: false,
+                opportunityNotify = p[OPP] ?: false,
             )
             val n = block(cur)
             p[LIQ] = n.liqAlertUsd
@@ -82,6 +86,7 @@ class SettingsStore(private val ctx: Context) {
             p[EQ] = n.equityUsd
             p[RISK] = n.riskPct
             p[ONB] = n.onboardDone
+            p[OPP] = n.opportunityNotify
         }
     }
 }

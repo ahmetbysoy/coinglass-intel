@@ -1,1 +1,1 @@
-v1.7: 6 tab — Karar / Grafik 320dp / Radar / İsabet / Nabız / Ayar.
+v1.8: Faz 4 — Radar keşif (ticker top-N, KEŞİF/WATCHLIST). Sabit coin yok.

@@ -82,4 +82,30 @@ object AlertNotifier {
             .build()
         nm.notify(ID_ALERT_BASE + (symbol.hashCode() and 0xffff), n)
     }
+
+    fun opportunityAlert(
+        ctx: Context,
+        symbol: String,
+        score: Double,
+        grade: String,
+        price: Double,
+    ) {
+        ensureChannels(ctx)
+        val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val open = PendingIntent.getActivity(
+            ctx, symbol.hashCode(),
+            Intent(ctx, MainActivity::class.java).putExtra("symbol", symbol),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val n = NotificationCompat.Builder(ctx, CH_ALERT)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle("KEŞİF $grade  $symbol  " + "%+.1f".format(score))
+            .setContentText("fiyat ${fmtPrice(price)}  fırsat (A/B + spoof<40 + netRR≥1.5)")
+            .setContentIntent(open)
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setDefaults(NotificationCompat.DEFAULT_SOUND or NotificationCompat.DEFAULT_VIBRATE)
+            .build()
+        nm.notify(ID_ALERT_BASE + (symbol.hashCode() and 0xffff), n)
+    }
 }

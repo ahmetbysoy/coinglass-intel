@@ -6,8 +6,14 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 
 @Database(
-    entities = [WatchEntity::class, ScoreSnapEntity::class, OutcomeEntity::class, AlertDedupEntity::class],
-    version = 5,
+    entities = [
+        WatchEntity::class,
+        ScoreSnapEntity::class,
+        OutcomeEntity::class,
+        AlertDedupEntity::class,
+        DiscoverySnapEntity::class,
+    ],
+    version = 6,
     exportSchema = false,
 )
 abstract class AppDb : RoomDatabase() {
@@ -15,6 +21,7 @@ abstract class AppDb : RoomDatabase() {
     abstract fun snap(): SnapDao
     abstract fun outcome(): OutcomeDao
     abstract fun dedup(): AlertDedupDao
+    abstract fun discovery(): DiscoveryDao
 
     companion object {
         @Volatile private var inst: AppDb? = null

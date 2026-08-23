@@ -65,6 +65,9 @@ fun SettingsScreen(
             Toggle("Turı tekrar göster", !s.onboardDone) { on ->
                 onChange { it.copy(onboardDone = !on) }
             }
+            Toggle("Fırsat bildirimi (keşif A/B)", s.opportunityNotify) { on ->
+                onChange { it.copy(opportunityNotify = on) }
+            }
         }
         Spacer(Modifier.height(Space.md))
         Panel {

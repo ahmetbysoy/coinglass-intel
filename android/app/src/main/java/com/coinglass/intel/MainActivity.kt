@@ -35,6 +35,8 @@ class MainActivity : ComponentActivity() {
             val settings by vm.settings.collectAsStateWithLifecycle()
             val tab by vm.tab.collectAsStateWithLifecycle()
             val snaps by vm.snaps.collectAsStateWithLifecycle()
+            val discovery by vm.discoverySnaps.collectAsStateWithLifecycle()
+            val watchlist by vm.watchlist.collectAsStateWithLifecycle()
             val scanning by vm.scanning.collectAsStateWithLifecycle()
             val now by vm.now.collectAsStateWithLifecycle()
             val compare by vm.compare.collectAsStateWithLifecycle()
@@ -88,6 +90,8 @@ class MainActivity : ComponentActivity() {
                             1 -> ChartScreen(vm)
                             2 -> ScannerScreen(
                                 snaps = snaps,
+                                discovery = discovery,
+                                watched = watchlist.map { it.symbol }.toSet(),
                                 scanning = scanning,
                                 staleSec = settings.staleSeconds,
                                 now = now,
@@ -97,6 +101,7 @@ class MainActivity : ComponentActivity() {
                                     vm.selectTab(0)
                                 },
                                 onRemove = { vm.removeWatch(it) },
+                                onAdd = { vm.toggleWatch(it) },
                                 onRefresh = { vm.refreshScanner() },
                                 onCompare = { vm.toggleCompare(it) },
                             )

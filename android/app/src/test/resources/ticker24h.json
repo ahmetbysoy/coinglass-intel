@@ -1,0 +1,13 @@
+[
+  {"symbol":"AAAUSDT","lastPrice":"1.10","quoteVolume":"91000000","priceChangePercent":"3.10"},
+  {"symbol":"BBBUSDT","lastPrice":"2.20","quoteVolume":"82000000","priceChangePercent":"-2.40"},
+  {"symbol":"CCCUSDT","lastPrice":"3.30","quoteVolume":"73000000","priceChangePercent":"0.40"},
+  {"symbol":"DDDUSDT","lastPrice":"4.40","quoteVolume":"10000000","priceChangePercent":"5.00"},
+  {"symbol":"EEEUSDT","lastPrice":"5.50","quoteVolume":"64000000","priceChangePercent":"-1.20"},
+  {"symbol":"FFFUSDT","lastPrice":"6.60","quoteVolume":"55000000","priceChangePercent":"8.80"},
+  {"symbol":"GGGUSDT","lastPrice":"7.70","quoteVolume":"21000000","priceChangePercent":"1.21"},
+  {"symbol":"HHHUSDT","lastPrice":"8.80","quoteVolume":"19999999","priceChangePercent":"4.00"},
+  {"symbol":"ETHUSD","lastPrice":"3500","quoteVolume":"999000000","priceChangePercent":"4.00"},
+  {"symbol":"BNBBUSD","lastPrice":"600","quoteVolume":"880000000","priceChangePercent":"-3.00"},
+  {"symbol":"BTCUSDT","lastPrice":"60000","quoteVolume":"5000000","priceChangePercent":"2.00"}
+]

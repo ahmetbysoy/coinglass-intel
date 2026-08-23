@@ -35,6 +35,7 @@ class AlertService : Service() {
         val db = AppDb.get(this)
         val settings = SettingsStore(this)
         val coord = ScanCoordinator(app.restClient, db)
+        var turn = 0
         while (scope.isActive) {
             val cfg = settings.flow.first()
             val watch = db.watch().all()
@@ -42,6 +43,13 @@ class AlertService : Service() {
             if (cfg.notificationsEnabled && watch.isNotEmpty()) {
                 coord.scan(notify = true, ctx = this, minAbs = cfg.scoreAlertAbs)
             }
+            if (turn % 5 == 0) {
+                coord.discover(
+                    notify = cfg.opportunityNotify && cfg.notificationsEnabled,
+                    ctx = this,
+                )
+            }
+            turn++
             delay(30_000)
         }
     }
