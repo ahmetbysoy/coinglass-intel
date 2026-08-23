@@ -109,17 +109,18 @@ class SmcTest {
 
     @Test
     fun sweepWickAboveEqualHighClosesInside() {
-        val base = (1..16).map { i ->
-            bar(i.toDouble(), 100.0, 100.04, 99.9, 100.0)
+        val noise = (1..15).map { i ->
+            bar(i.toDouble(), 50.0, 50.5, 49.5, 50.1)
         }
-        val e1 = bar(17.0, 99.95, 100.0, 99.8, 99.96)
-        val e2 = bar(18.0, 99.97, 100.0, 99.82, 99.94)
-        val wick = bar(19.0, 99.9, 100.2, 99.7, 99.85)
-        val r = Smc.analyze(base + e1 + e2 + wick)
-        assertTrue(r.sweeps.any { it.side == "bear" && it.endIdx == 18 })
-        val s = r.sweeps.first { it.side == "bear" }
-        assertTrue(s.high >= 100.2 - 1e-9)
-        assertTrue(s.low <= 100.0 + 1e-9)
+        val e1 = bar(16.0, 50.2, 51.0, 50.0, 50.3)
+        val e2 = bar(17.0, 50.1, 51.0, 50.0, 50.2)
+        val wick = bar(18.0, 50.5, 51.4, 50.1, 50.4)
+        val r = Smc.analyze(noise + e1 + e2 + wick)
+        val s = r.sweeps.firstOrNull { it.side == "bear" }
+        assertTrue(s != null)
+        assertTrue(s!!.high >= 51.4 - 1e-9)
+        assertTrue(s.low <= 51.0 + 1e-9)
+        assertEquals(17, s.endIdx)
     }
 
     @Test
