@@ -69,8 +69,6 @@ import com.coinglass.intel.ui.theme.Surface2
 import com.coinglass.intel.ui.theme.Text
 import com.coinglass.intel.ui.theme.Warn
 import kotlin.math.abs
-import kotlin.math.max
-import kotlin.math.min
 
 @Composable
 fun IntelScreen(vm: AppViewModel) {
