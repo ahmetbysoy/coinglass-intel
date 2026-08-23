@@ -178,4 +178,8 @@ data class IntelUiState(
     val chartTf: String = "1h",
     val stale: Boolean = false,
     val inWatchlist: Boolean = false,
+    val fresh: SourceFresh = SourceFresh(),
+    val hit: HitRate = HitRate(),
+    val restErrors: List<String> = emptyList(),
+    val liqSeen: Boolean = false,
 )

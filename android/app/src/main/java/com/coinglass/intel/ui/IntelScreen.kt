@@ -491,6 +491,44 @@ private fun Mini(label: String, value: String) {
     }
 }
 
+@Composable
+private fun Onboard() {
+    Card {
+        Text("NASIL ÇALIŞIR", color = Accent, fontSize = 12.sp, fontWeight = FontWeight.Black)
+        Spacer(Modifier.height(8.dp))
+        Text("1. Yukarıya herhangi bir USDT pair yaz (sabit liste yok).", color = Text, fontSize = 13.sp)
+        Text("2. Yıldıza bas — watchlist senin girdilerin.", color = Text, fontSize = 13.sp)
+        Text("3. Tarayıcı |skor| sıralar, İsabet sekmesi settle sonuçlarını gösterir.", color = Text, fontSize = 13.sp)
+    }
+}
+
+@Composable
+private fun SourceStale(state: IntelUiState, staleSec: Int) {
+    val now = System.currentTimeMillis()
+    fun tag(ms: Long) = if (ms == 0L) "yok" else if (now - ms > staleSec * 1000L) "BAYAT" else "ok"
+    val bits = listOf(
+        "fiyat" to tag(state.fresh.priceMs),
+        "OI" to tag(state.fresh.oiMs),
+        "fund" to tag(state.fresh.fundMs),
+        "OB" to tag(state.fresh.obMs),
+    )
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        bits.forEach { (k, v) ->
+            val bad = v != "ok"
+            Text(
+                "$k $v",
+                color = if (bad) Warn else Mute,
+                fontSize = 10.sp,
+                fontWeight = if (bad) FontWeight.Bold else FontWeight.Normal,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Surface2)
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+            )
+        }
+    }
+}
+
 private fun dirColor(dir: String): Color = when {
     "BULL" in dir -> Bull
     "BEAR" in dir -> Bear
