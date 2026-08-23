@@ -52,6 +52,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.coinglass.intel.data.db.OutcomeEntity
+import com.coinglass.intel.domain.DailyRisk
 import com.coinglass.intel.domain.fmtPrice
 import com.coinglass.intel.domain.fmtUsd
 import com.coinglass.intel.domain.model.IntelUiState
