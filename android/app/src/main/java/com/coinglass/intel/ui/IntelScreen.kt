@@ -328,7 +328,7 @@ private fun VerdictCard(r: V4Report?) {
             Mini("skor", "%+.1f".format(r?.totalScore ?: 0.0), color)
             Mini("netRR", "%.2f".format(r?.netRr ?: 0.0), if ((r?.netRr ?: 0.0) >= 1) Bull else Bear)
             Mini("spoof", "${r?.spoof ?: 0}", if ((r?.spoof ?: 0) >= 50) Bear else scheme.onSurface)
-            Mini("risk", "${r?.risk ?: 0}")
+            Mini("risk", "${r?.risk ?: 0}${if (r?.riskMode == "percentile") " pctl" else " stat"}")
         }
         if (r != null && r.spoof >= 50) {
             Text(

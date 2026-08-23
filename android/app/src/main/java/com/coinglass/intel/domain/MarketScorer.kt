@@ -158,7 +158,7 @@ object MarketScorer {
         val risk = Curves.riskScore(atrPct, fundingAvg, lsAvg, vol24, atrHist)
         val snapSpoof = analyzeSpoof(feed, lsAvg, aggImb)
         val histSpoof = Structure.spoofFromHistory(feed.bookHistory)
-        val spoof = min(100, max(snapSpoof / 2, histSpoof))
+        val spoof = min(100, max((snapSpoof * Curves.SPOOF_SNAP_WEIGHT).toInt(), histSpoof))
         if (feed.symbol != "BTCUSDT" && abs(feed.btcChg24) > 1.2) {
             if ("BULL" in direction && feed.btcChg24 < -1.2) {
                 warnings += "BTC ${"%+.2f".format(feed.btcChg24)}% duserken alt long — capraz risk"
@@ -273,6 +273,7 @@ object MarketScorer {
             enterOk = verdict.enterOk,
             poc = struct.poc,
             divergeType = (divergence["type"] as? String).orEmpty(),
+            riskMode = Curves.riskMode(atrHist),
         )
     }
 

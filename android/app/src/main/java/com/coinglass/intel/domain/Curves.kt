@@ -8,6 +8,17 @@ import kotlin.math.tanh
 /** Continuous scoring curves — keep in lockstep with python/engine/curves.py */
 object Curves {
     const val RISK_RAW_MAX = 65.0
+    const val ATR_PCTL_MIN = 12
+    /** Snap spoof is noisier than vanishing-wall history — half weight. */
+    const val SPOOF_SNAP_WEIGHT = 0.5
+
+    fun riskMode(atrHistory: List<Double>): String =
+        if (atrHistory.size >= ATR_PCTL_MIN) "percentile" else "static"
+
+    fun momFromRsiAndRet(rsi: Double, ret3: Double): Double {
+        val retPart = max(min(ret3 * 10.0, 50.0), -50.0)
+        return (rsiSignal(rsi) + retPart) / 2.0
+    }
 
     fun rsiSignal(rsi: Double): Double = 30.0 * tanh((50.0 - rsi) / 12.0)
 
@@ -35,7 +46,7 @@ object Curves {
     ): Double {
         var raw = 0.0
         val atrPctl = percentile(atrHistory, atrPct)
-        if (atrHistory.size >= 12) {
+        if (atrHistory.size >= ATR_PCTL_MIN) {
             if (atrPctl >= 80) raw += 20.0 else if (atrPctl >= 60) raw += 10.0
         } else {
             if (atrPct > 4) raw += 20.0 else if (atrPct > 2) raw += 10.0

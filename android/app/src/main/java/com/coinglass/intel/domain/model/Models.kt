@@ -166,6 +166,7 @@ data class V4Report(
     val enterOk: Boolean = false,
     val poc: Double = 0.0,
     val divergeType: String = "",
+    val riskMode: String = "static",
 )
 
 data class LaneStats(

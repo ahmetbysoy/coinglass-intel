@@ -91,10 +91,10 @@ Her faz: Kotlin unit test + `python -m unittest` + CI `assembleDebug` yeşil. RE
 
 | ID | İş | Kabul |
 |---|---|---|
-| 0.1 | Dedup → Room `AlertDedup` | Worker 15dk sonra aynı skor+Δ<8 tekrar bildirmez (process ölse bile). Test: insert, ikinci `scan` skip. |
-| 0.2 | `snapSpoof/2` | `Curves.SPOOF_SNAP_WEIGHT = 0.5` sabit + yorum. Test mevcut spoof-skip’i bozmaz. |
-| 0.3 | Risk mod etiketi | `V4Report.riskMode = "percentile" \| "static"`. Karar kartında `risk 42 · pctl`. hist&lt;12 ise `static`. |
-| 0.4 | Lockstep CI | `python/tests/test_lockstep.py` + Kotlin `LockstepTest` aynı JSON fixture. `rsi_signal`, `oi_score`, `ls_score`, `risk_score`, `mom_from_rsi` 1e-6. Fark → fail. |
+| 0.1 | Dedup → Room `AlertDedup` | **yapıldı** Worker 15dk sonra aynı skor+Δ<8 tekrar bildirmez. |
+| 0.2 | `snapSpoof/2` | **yapıldı** `Curves.SPOOF_SNAP_WEIGHT = 0.5`. |
+| 0.3 | Risk mod etiketi | **yapıldı** `riskMode` + UI `pctl`/`stat`. |
+| 0.4 | Lockstep CI | **yapıldı** `test_lockstep.py` + `LockstepTest` aynı fixture. |
 
 ### FAZ 1 — 6 tab
 
