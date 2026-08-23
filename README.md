@@ -4,19 +4,15 @@ Native Kotlin / Jetpack Compose telefon istihbaratı.
 
 Sembol **hardcode değil**. Watchlist = senin yazdığın pair (Room).
 
+Ürün + faz spec: [`SPEC.md`](SPEC.md)
+
 ## Karar
 
 Tek satır + A/B/C/D. **GİRME** kırmızı: spoof≥50 / coverage<%40 / netRR<1.
 
 ## Likidasyon haritası
 
-Canlı `forceOrder` + CoinGlass liq, fiyat kademesine (24 bin) yığılır.
-
-- Sol kırmızı = long liq
-- Sağ yeşil = short liq
-- Grafiğin sağ şeridinde overlay
-
-DOM kitap değil — gerçek tasfiye akışı.
+Canlı `forceOrder` + CoinGlass liq, fiyat kademesine (24 bin) yığılır. Sol long, sağ short. DOM değil.
 
 ## Grafik
 
