@@ -25,6 +25,7 @@ data class UserSettings(
     val riskPct: Double = 1.0,
     val onboardDone: Boolean = false,
     val opportunityNotify: Boolean = false,
+    val autoPaper: Boolean = false,
 )
 
 class SettingsStore(private val ctx: Context) {
@@ -40,6 +41,7 @@ class SettingsStore(private val ctx: Context) {
     private val RISK = doublePreferencesKey("risk_pct")
     private val ONB = booleanPreferencesKey("onboard_done")
     private val OPP = booleanPreferencesKey("opp_notify")
+    private val PAPER = booleanPreferencesKey("auto_paper")
 
     val flow: Flow<UserSettings> = ctx.dataStore.data.map { p ->
         UserSettings(
@@ -55,6 +57,7 @@ class SettingsStore(private val ctx: Context) {
             riskPct = p[RISK] ?: 1.0,
             onboardDone = p[ONB] ?: false,
             opportunityNotify = p[OPP] ?: false,
+            autoPaper = p[PAPER] ?: false,
         )
     }
 
@@ -73,6 +76,7 @@ class SettingsStore(private val ctx: Context) {
                 riskPct = p[RISK] ?: 1.0,
                 onboardDone = p[ONB] ?: false,
                 opportunityNotify = p[OPP] ?: false,
+                autoPaper = p[PAPER] ?: false,
             )
             val n = block(cur)
             p[LIQ] = n.liqAlertUsd
@@ -87,6 +91,7 @@ class SettingsStore(private val ctx: Context) {
             p[RISK] = n.riskPct
             p[ONB] = n.onboardDone
             p[OPP] = n.opportunityNotify
+            p[PAPER] = n.autoPaper
         }
     }
 }

@@ -28,7 +28,7 @@ Saklanacak farklılaşma: spoof≥50 duvarı SL yapmaz, `netRR` fee+funding dü�
 
 | Var | Yok / kırık |
 |---|---|
-| Compose 6 tab, Room watchlist/snap/outcome/dedup/discovery | Paper trade / backtest |
+| Compose 6 tab, Room watchlist/snap/outcome/dedup/discovery/paper | Crosshair / tap-fiyat |
 | Dual Binance WS + CG liq + Bybit/OKX BBO + SMC overlay | Crosshair / tap-fiyat |
 | Verdict A–D, GİRME, netRR, SMC +8, pozisyon boyutu | Sembol bazlı çoklu alarm |
 | Liq heatmap (24 bin), DOM, VAL/VAH | Haftalık/aylık open + margin sim |
@@ -118,12 +118,14 @@ Test: `SmcTest` — sentetik 3-mum FVG, sweep wick, OB kutusu, boost cap A.
 
 ### FAZ 3 — Paper + kalibrasyon
 
+**yapıldı** (v1.10) `PaperEngine` + `paper_trade` Room v7.
+
 - Verdict `enterOk` ve grade A/B iken kullanıcı “kağıt aç” veya Ayar `autoPaper=true`.
 - Kapanış: fiyat SL/TP’ye değer veya 15m timeout (`OutcomeTracker` ufku).
 - `WeightCalibrator.boost` kaynağı: settled paper + mevcut outcome. `n<8` kuralı aynı.
 - Radar’da açık kağıt satırları.
 
-Test: long, fiyat SL’ye iner → `win=false`. Dedup 120s aynı sembol ikinci paper yok.
+Test: `PaperTradeTest` — long SL → `win=false`. Dedup 120s aynı sembol ikinci paper yok.
 
 ### FAZ 4 — Radar keşif (ürünün neden açık kaldığı)
 

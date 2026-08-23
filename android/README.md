@@ -1,1 +1,1 @@
-v1.9: Faz 2 — SMC (OB / FVG / sweep). Overlay chip kapalı, Verdict +8.
+v1.10: Faz 3 — paper trade + calibrator. KAĞIT AÇ / oto, SL-TP-15dk, 120sn dedup.

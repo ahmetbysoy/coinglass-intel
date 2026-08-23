@@ -76,7 +76,9 @@ class OutcomeTracker(private val db: AppDb) {
 
     suspend fun alignedBoost(): Map<String, Double> {
         val rows = db.outcome().settled15(200)
-        if (rows.size < WeightCalibrator.MIN_N) return emptyMap()
+        val papers = db.paper().settled(200)
+        val n = rows.size + papers.size
+        if (n < WeightCalibrator.MIN_N) return emptyMap()
         val keys = listOf("ob", "tf", "oi", "funding", "liq", "vol", "mom")
         val avg = mutableMapOf<String, Double>()
         for (k in keys) {
@@ -91,10 +93,19 @@ class OutcomeTracker(private val db: AppDb) {
                     "vol" -> r.vol
                     else -> r.mom
                 }
-                if (abs(v) < 1.0 || r.px15 == null || r.price == 0.0) continue
-                val fwd = (r.px15 - r.price) / r.price * 100.0
-                val side = if (v > 0) 1.0 else -1.0
-                xs += fwd * side
+                pushAligned(xs, v, r.price, r.px15)
+            }
+            for (p in papers) {
+                val v = when (k) {
+                    "ob" -> p.ob
+                    "tf" -> p.tf
+                    "oi" -> p.oi
+                    "funding" -> p.funding
+                    "liq" -> p.liq
+                    "vol" -> p.vol
+                    else -> p.mom
+                }
+                pushAligned(xs, v, p.entry, p.exitPx)
             }
             val label = when (k) {
                 "ob" -> "OB"
@@ -107,6 +118,13 @@ class OutcomeTracker(private val db: AppDb) {
             }
             if (xs.isNotEmpty()) avg[label] = xs.average()
         }
-        return WeightCalibrator.boost(avg, rows.size)
+        return WeightCalibrator.boost(avg, n)
+    }
+
+    private fun pushAligned(xs: MutableList<Double>, v: Double, entry: Double, exit: Double?) {
+        if (abs(v) < 1.0 || exit == null || entry == 0.0) return
+        val fwd = (exit - entry) / entry * 100.0
+        val side = if (v > 0) 1.0 else -1.0
+        xs += fwd * side
     }
 }

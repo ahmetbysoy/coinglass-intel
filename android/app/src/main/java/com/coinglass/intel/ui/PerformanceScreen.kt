@@ -32,6 +32,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.coinglass.intel.data.db.OutcomeEntity
+import com.coinglass.intel.data.db.PaperTradeEntity
+import com.coinglass.intel.domain.fmtPrice
 import com.coinglass.intel.domain.DailyRisk
 import com.coinglass.intel.ui.theme.Bear
 import com.coinglass.intel.ui.theme.Bull
@@ -51,6 +53,7 @@ fun PerformanceScreen(
     equityUsd: Double = 1_000.0,
     riskPct: Double = 1.0,
     report: com.coinglass.intel.domain.model.V4Report? = null,
+    papers: List<PaperTradeEntity> = emptyList(),
 ) {
     val scheme = MaterialTheme.colorScheme
     var hz by remember { mutableStateOf(Horizon.M15) }
@@ -160,6 +163,27 @@ fun PerformanceScreen(
         Spacer(Modifier.height(10.dp))
         PositionCard(report, equityUsd, riskPct)
         Spacer(Modifier.height(10.dp))
+        if (papers.isNotEmpty()) {
+            Text("KAĞIT", color = scheme.primary, fontSize = 11.sp, fontWeight = FontWeight.Black)
+            papers.take(12).forEach { p ->
+                val mark = when {
+                    p.win == true -> "OK" to Bull
+                    p.win == false -> "X" to Bear
+                    else -> "…" to scheme.onSurfaceVariant
+                }
+                Text(
+                    mark.first + "  " + p.symbol + "  " + p.side + "  " +
+                        fmtPrice(p.entry) +
+                        (p.exitPx?.let { " → " + fmtPrice(it) } ?: "") +
+                        "  " + p.source,
+                    color = mark.second,
+                    fontSize = 12.sp,
+                    fontFamily = FontFamily.Monospace,
+                    modifier = Modifier.padding(vertical = 2.dp),
+                )
+            }
+            Spacer(Modifier.height(10.dp))
+        }
         LazyColumn {
             items(rows.take(80), key = { it.id }) { o ->
                 val mark = when {

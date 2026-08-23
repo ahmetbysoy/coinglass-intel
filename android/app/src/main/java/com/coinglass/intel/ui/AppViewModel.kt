@@ -19,6 +19,8 @@ import com.coinglass.intel.domain.Symbols
 import com.coinglass.intel.domain.model.HitRate
 import com.coinglass.intel.domain.model.IntelUiState
 import com.coinglass.intel.data.db.OutcomeEntity
+import com.coinglass.intel.data.db.PaperTradeEntity
+import com.coinglass.intel.data.paper.PaperBook
 import com.coinglass.intel.work.MarketDiscovery
 import com.coinglass.intel.work.ScoreWorker
 import com.coinglass.intel.work.WatchlistScanner
@@ -37,6 +39,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val scanner = WatchlistScanner(intel.restClient, db)
     private val discovery = MarketDiscovery(intel.restClient, db)
     private val tracker = OutcomeTracker(db)
+    private val papers = PaperBook(db)
 
     val settings: StateFlow<UserSettings> = settingsStore.flow.stateIn(
         viewModelScope, SharingStarted.Eagerly, UserSettings(),
@@ -52,6 +55,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     )
     private val hit = MutableStateFlow(HitRate())
     val outcomes: StateFlow<List<OutcomeEntity>> = db.outcome().observe(80).stateIn(
+        viewModelScope, SharingStarted.Eagerly, emptyList(),
+    )
+    val paperTrades: StateFlow<List<PaperTradeEntity>> = db.paper().observe().stateIn(
         viewModelScope, SharingStarted.Eagerly, emptyList(),
     )
     val compare = MutableStateFlow<List<String>>(emptyList())
@@ -98,6 +104,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 val r = st.report ?: return@collect
                 tracker.record(r)
                 tracker.settle(r.symbol, r.price)
+                papers.settle(r.symbol, r.price)
+                if (settings.value.autoPaper) papers.tryOpen(r, "auto")
                 hit.value = tracker.hitRate(r.symbol)
                 repo.setBoost(tracker.alignedBoost())
             }
@@ -164,6 +172,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         } else {
             ctx.stopService(i)
         }
+    }
+
+    fun openPaper() {
+        val r = live.value.report ?: return
+        viewModelScope.launch { papers.tryOpen(r, "manual") }
     }
 
     fun selectChartTf(tf: String) {

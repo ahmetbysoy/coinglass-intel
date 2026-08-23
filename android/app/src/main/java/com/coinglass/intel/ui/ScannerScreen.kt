@@ -94,6 +94,7 @@ fun ScannerScreen(
     onAdd: (String) -> Unit,
     onRefresh: () -> Unit,
     onCompare: (String) -> Unit,
+    openPapers: List<PaperTradeEntity> = emptyList(),
 ) {
     val scheme = MaterialTheme.colorScheme
     var maxRisk by remember { mutableStateOf(100) }
@@ -172,6 +173,21 @@ fun ScannerScreen(
         Row(horizontalArrangement = Arrangement.spacedBy(Space.sm)) {
             SegChip("KEŞİF", paneEnum == RadarPane.DISCOVERY, scheme) { pane = RadarPane.DISCOVERY.name }
             SegChip("WATCHLIST", paneEnum == RadarPane.WATCHLIST, scheme) { pane = RadarPane.WATCHLIST.name }
+        }
+        val livePaper = openPapers.filter { it.closedAt == null }
+        if (livePaper.isNotEmpty()) {
+            Spacer(Modifier.height(Space.sm))
+            Text("AÇIK KAĞIT", color = scheme.primary, fontSize = 11.sp, fontWeight = FontWeight.Black)
+            livePaper.take(6).forEach { p ->
+                Text(
+                    p.symbol + "  " + p.side + "  " + fmtPrice(p.entry) +
+                        "  SL " + fmtPrice(p.sl) + "  TP " + fmtPrice(p.tp),
+                    color = scheme.onSurface,
+                    fontSize = 12.sp,
+                    fontFamily = FontFamily.Monospace,
+                    modifier = Modifier.clickable { onOpen(p.symbol) },
+                )
+            }
         }
         Spacer(Modifier.height(Space.sm))
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(Space.sm)) {

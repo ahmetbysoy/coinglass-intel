@@ -41,6 +41,7 @@ class MainActivity : ComponentActivity() {
             val now by vm.now.collectAsStateWithLifecycle()
             val compare by vm.compare.collectAsStateWithLifecycle()
             val outcomes by vm.outcomes.collectAsStateWithLifecycle()
+            val papers by vm.paperTrades.collectAsStateWithLifecycle()
             val live by vm.live.collectAsStateWithLifecycle()
             CoinGlassTheme(dark = settings.darkTheme) {
                 Scaffold(
@@ -104,8 +105,9 @@ class MainActivity : ComponentActivity() {
                                 onAdd = { vm.toggleWatch(it) },
                                 onRefresh = { vm.refreshScanner() },
                                 onCompare = { vm.toggleCompare(it) },
+                                openPapers = papers.filter { it.closedAt == null },
                             )
-                            3 -> PerformanceScreen(outcomes, settings.equityUsd, settings.riskPct, live.report)
+                            3 -> PerformanceScreen(outcomes, settings.equityUsd, settings.riskPct, live.report, papers)
                             4 -> PulseScreen(vm)
                             5 -> SettingsScreen(
                                 s = settings,

@@ -72,6 +72,7 @@ fun IntelScreen(vm: AppViewModel) {
     val state by vm.live.collectAsStateWithLifecycle()
     val cfg by vm.settings.collectAsStateWithLifecycle()
     val outcomes by vm.outcomes.collectAsStateWithLifecycle()
+    val paperTrades by vm.paperTrades.collectAsStateWithLifecycle()
     var query by remember(state.symbol) { mutableStateOf(state.symbol) }
     val focus = LocalFocusManager.current
     val scheme = MaterialTheme.colorScheme
@@ -196,6 +197,12 @@ fun IntelScreen(vm: AppViewModel) {
             PriceCard(state, r)
             Spacer(Modifier.height(10.dp))
             StrategyCard(r, state.hit.line, state.chartTf)
+            Spacer(Modifier.height(Space.sm))
+            PaperBar(
+                report = r,
+                open = paperTrades.firstOrNull { it.symbol == state.symbol && it.closedAt == null },
+                onOpen = { vm.openPaper() },
+            )
             Spacer(Modifier.height(Space.sm))
             Text(
                 "grafik / DOM / liq → Grafik sekmesi",
@@ -349,6 +356,38 @@ private fun PriceCard(state: IntelUiState, r: V4Report?) {
         }
         Text(state.statusLine, color = scheme.onSurfaceVariant, fontSize = 11.sp, modifier = Modifier.padding(top = Space.xs))
     }
+}
+
+@Composable
+private fun PaperBar(
+    report: V4Report?,
+    open: com.coinglass.intel.data.db.PaperTradeEntity?,
+    onOpen: () -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+    if (open != null) {
+        Text(
+            "KAĞIT AÇIK  " + open.side + "  " + fmtPrice(open.entry) +
+                "  SL " + fmtPrice(open.sl) + "  TP " + fmtPrice(open.tp),
+            color = scheme.primary,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+        )
+        return
+    }
+    val ok = report != null && report.enterOk && (report.grade == "A" || report.grade == "B")
+    if (!ok) return
+    Text(
+        "KAĞIT AÇ  ·  emir yok",
+        color = scheme.onPrimary,
+        fontWeight = FontWeight.Black,
+        fontSize = 13.sp,
+        modifier = Modifier
+            .clip(RoundedCornerShape(Radii.md))
+            .background(scheme.primary)
+            .clickable(onClick = onOpen)
+            .padding(horizontal = Space.md, vertical = Space.sm),
+    )
 }
 
 @Composable
@@ -603,6 +642,7 @@ private fun Onboard() {
         Glossary("netRR", "TP/SL eksi fee ve yakin funding maliyeti")
         Glossary("grafik", "1m/3m/5m/15m chip; 600 mum REST seed, WS ezmez; VAL/VAH bant")
         Glossary("not", "A/B/C/D = coverage+confluence+spoof+risk+netRR; SMC +8 ayni yon bos OB/FVG")
+        Glossary("kagit", "A/B + enterOk iken kagit ac; SL/TP veya 15dk. Emir yok.")
         Glossary("liq map", "forceOrder+CG liq fiyat kademesine yığılır; sol long, sağ short")
     }
 }

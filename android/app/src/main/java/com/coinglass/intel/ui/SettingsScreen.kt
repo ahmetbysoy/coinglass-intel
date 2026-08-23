@@ -68,6 +68,9 @@ fun SettingsScreen(
             Toggle("Fırsat bildirimi (keşif A/B)", s.opportunityNotify) { on ->
                 onChange { it.copy(opportunityNotify = on) }
             }
+            Toggle("Oto kağıt (A/B + GİRME yok)", s.autoPaper) { on ->
+                onChange { it.copy(autoPaper = on) }
+            }
         }
         Spacer(Modifier.height(Space.md))
         Panel {
