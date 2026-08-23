@@ -167,6 +167,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         tab.value = i
     }
 
+    fun cycleWatch(delta: Int) {
+        val list = watchlist.value.map { it.symbol }
+        if (list.isEmpty()) return
+        val cur = live.value.symbol
+        val i = list.indexOf(cur).let { if (it < 0) 0 else it }
+        submit(list[(i + delta + list.size) % list.size])
+    }
+
     override fun onCleared() {
         repo.stop()
         super.onCleared()

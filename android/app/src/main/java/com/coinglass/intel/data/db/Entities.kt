@@ -21,4 +21,6 @@ data class ScoreSnapEntity(
     val updatedAt: Long,
     val candles1hJson: String = "[]",
     val candles4hJson: String = "[]",
+    val risk: Int = 0,
+    val spoof: Int = 0,
 )

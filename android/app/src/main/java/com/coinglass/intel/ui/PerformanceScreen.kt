@@ -39,9 +39,18 @@ fun PerformanceScreen(rows: List<OutcomeEntity>) {
             .padding(horizontal = 16.dp),
     ) {
         Text("İSABET", color = Accent, fontWeight = FontWeight.Black, letterSpacing = 1.2.sp, fontSize = 13.sp)
+        val winsR = settled.filter { it.win15 == true }.mapNotNull { o ->
+            o.px15?.let { (it - o.price) / o.price * 100 }
+        }
+        val lossR = settled.filter { it.win15 == false }.mapNotNull { o ->
+            o.px15?.let { kotlin.math.abs((it - o.price) / o.price * 100) }
+        }
+        val avgW = if (winsR.isEmpty()) 0.0 else winsR.average()
+        val avgL = if (lossR.isEmpty()) 0.0 else lossR.average()
+        val exp = wr * avgW - (1 - wr) * avgL
         Text(
             if (settled.isEmpty()) "henuz settle yok — 15dk sonra dolacak"
-            else "15m win-rate %${(wr * 100).toInt()}  ($wins/${settled.size})",
+            else "15m WR %${(wr * 100).toInt()}  ($wins/${settled.size})  exp ${"%+.2f".format(exp)}%  R ${if (avgL == 0.0) "—" else "%.2f".format(avgW / avgL)}",
             color = Mute, fontSize = 12.sp,
         )
         Spacer(Modifier.height(10.dp))

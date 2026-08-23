@@ -69,7 +69,24 @@ class CurvesTest {
             StructureLevels(support = 98.8, bidWall = 98.7),
         )
         assertTrue(with.sl >= atrOnly.sl - 1e-9)
-        assertTrue(with.reason.contains("swing") || with.reason.contains("ob"))
+        assertTrue(with.reason.contains("vpoc") || with.reason.contains("ob") || with.reason.contains("atr"))
+    }
+
+    @Test
+    fun slTpSkipsSpoofWall() {
+        val clean = Curves.slTp(
+            100.0, "BULLISH", 2.0, 40.0,
+            StructureLevels(bidWall = 99.2),
+            spoofScore = 0,
+        )
+        val spoofed = Curves.slTp(
+            100.0, "BULLISH", 2.0, 40.0,
+            StructureLevels(bidWall = 99.2),
+            spoofScore = 80,
+        )
+        assertTrue(spoofed.reason.contains("spoof-skip-wall"))
+        assertTrue(spoofed.netRr != 0.0 || spoofed.slPct > 0)
+        assertTrue(clean.reason.contains("ob-bid") || clean.sl != spoofed.sl)
     }
 
     @Test

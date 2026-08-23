@@ -74,7 +74,7 @@ class BinanceDualWs(
             name = "market",
             url = combined(
                 MARKET_BASE,
-                listOf("$s@kline_1m", "$s@kline_5m", "$s@markPrice@1s", "$s@forceOrder"),
+                listOf("$s@kline_1m", "$s@kline_3m", "$s@kline_5m", "$s@kline_15m", "$s@markPrice@1s", "$s@forceOrder"),
             ),
             stats = _market,
         ).also { it.connect() }

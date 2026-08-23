@@ -15,23 +15,41 @@ data class StructureLevels(
 )
 
 object Structure {
-    /** Last swing low / high from 1h (or 5m) candles. */
-    fun swings(rows: List<Candle>): Pair<Double, Double> {
-        if (rows.size < 6) return 0.0 to 0.0
-        val s = rows.sortedBy { it.openTime }
-        var sup = 0.0
-        var res = 0.0
-        for (i in 2 until s.size - 2) {
-            val lo = s[i].low
-            val hi = s[i].high
-            if (lo <= s[i - 1].low && lo <= s[i - 2].low && lo <= s[i + 1].low && lo <= s[i + 2].low) {
-                sup = lo
-            }
-            if (hi >= s[i - 1].high && hi >= s[i - 2].high && hi >= s[i + 1].high && hi >= s[i + 2].high) {
-                res = hi
+    /** Volume-weighted value area (POC band). VAL ≈ support, VAH ≈ resistance. */
+    fun volumeArea(rows: List<Candle>, bins: Int = 24): Pair<Double, Double> {
+        if (rows.size < 8) return 0.0 to 0.0
+        val s = rows.sortedBy { it.openTime }.takeLast(120)
+        val lo = s.minOf { it.low }
+        val hi = s.maxOf { it.high }
+        if (hi <= lo) return 0.0 to 0.0
+        val step = (hi - lo) / bins
+        val vol = DoubleArray(bins)
+        for (c in s) {
+            val mid = (c.high + c.low + c.close) / 3.0
+            val i = (((mid - lo) / step).toInt()).coerceIn(0, bins - 1)
+            vol[i] += c.volume
+        }
+        val tot = vol.sum()
+        if (tot <= 0) return 0.0 to 0.0
+        val poc = vol.indices.maxBy { vol[it] }
+        var acc = vol[poc]
+        var a = poc
+        var b = poc
+        val target = tot * 0.70
+        while (acc < target && (a > 0 || b < bins - 1)) {
+            val left = if (a > 0) vol[a - 1] else -1.0
+            val right = if (b < bins - 1) vol[b + 1] else -1.0
+            if (right >= left) {
+                b += 1
+                acc += vol[b]
+            } else {
+                a -= 1
+                acc += vol[a]
             }
         }
-        return sup to res
+        val vah = lo + (b + 1) * step
+        val val_ = lo + a * step
+        return val_ to vah
     }
 
     fun walls(book: OrderBook?): Pair<Double, Double> {
@@ -42,7 +60,7 @@ object Structure {
     }
 
     fun from(candles: List<Candle>, book: OrderBook?): StructureLevels {
-        val (s, r) = swings(candles)
+        val (s, r) = volumeArea(candles)
         val (bw, aw) = walls(book)
         return StructureLevels(s, r, bw, aw)
     }

@@ -49,7 +49,11 @@ class ExchangeRest(private val client: OkHttpClient) {
             val bn = async { binance(pair) }
             val by = async { bybit(pair) }
             val ok = async { okx(info.okx) }
-            merge(pair, bn.await(), by.await(), ok.await())
+            val btc = async {
+                if (pair == "BTCUSDT") 0.0
+                else get("$BN/fapi/v1/ticker/24hr?symbol=BTCUSDT").asObj()?.num("priceChangePercent") ?: 0.0
+            }
+            merge(pair, bn.await(), by.await(), ok.await(), btc.await())
         }
     }
 
@@ -64,13 +68,18 @@ class ExchangeRest(private val client: OkHttpClient) {
         val funding: List<Double> = emptyList(),
         val ls: Double? = null,
         val taker: List<TakerBar> = emptyList(),
+        val k1: List<Candle> = emptyList(),
+        val k3: List<Candle> = emptyList(),
         val k5: List<Candle> = emptyList(),
         val k15: List<Candle> = emptyList(),
         val k1h: List<Candle> = emptyList(),
-        val k4h: List<Candle> = emptyList(),
+        val btcChg: Double = 0.0,
+        val nextFundingMs: Long = 0L,
     )
 
-    private fun merge(pair: String, bn: Bundle, by: Bundle, ok: Bundle): ScoreInput {
+    private fun merge(pair: String, bn: Bundle, by: Bundle, ok: Bundle, btcChg: Double): ScoreInput {
+        val nextMs = bn.nextFundingMs
+        val mins = if (nextMs > 0) (nextMs - System.currentTimeMillis()) / 60_000.0 else 999.0
         return ScoreInput(
             symbol = pair,
             prices = bn.prices + by.prices + ok.prices,
@@ -86,8 +95,12 @@ class ExchangeRest(private val client: OkHttpClient) {
             klines5m = bn.k5,
             klines15m = bn.k15,
             klines1h = bn.k1h,
-            klines4h = bn.k4h,
             restErrors = drainErrors(),
+            klines1m = bn.k1,
+            klines3m = bn.k3,
+            btcChg24 = if (pair == "BTCUSDT") bn.chg24 else btcChg,
+            nextFundingMs = nextMs,
+            minutesToFunding = mins,
         )
     }
 
@@ -100,10 +113,12 @@ class ExchangeRest(private val client: OkHttpClient) {
         val oiH = get("$BN/futures/data/openInterestHist?symbol=$pair&period=5m&limit=50")
         val ls = get("$BN/futures/data/globalLongShortAccountRatio?symbol=$pair&period=5m&limit=30")
         val taker = get("$BN/futures/data/takerlongshortRatio?symbol=$pair&period=5m&limit=30")
-        val k5 = get("$BN/fapi/v1/klines?symbol=$pair&interval=5m&limit=200")
-        val k15 = get("$BN/fapi/v1/klines?symbol=$pair&interval=15m&limit=100")
-        val k1h = get("$BN/fapi/v1/klines?symbol=$pair&interval=1h&limit=100")
-        val k4h = get("$BN/fapi/v1/klines?symbol=$pair&interval=4h&limit=100")
+        val prem = get("$BN/fapi/v1/premiumIndex?symbol=$pair")
+        val k1 = get("$BN/fapi/v1/klines?symbol=$pair&interval=1m&limit=600")
+        val k3 = get("$BN/fapi/v1/klines?symbol=$pair&interval=3m&limit=600")
+        val k5 = get("$BN/fapi/v1/klines?symbol=$pair&interval=5m&limit=600")
+        val k15 = get("$BN/fapi/v1/klines?symbol=$pair&interval=15m&limit=600")
+        val k1h = get("$BN/fapi/v1/klines?symbol=$pair&interval=1h&limit=200")
 
         val tObj = ticker.asObj()
         val prices = mutableListOf<NamedPrice>()
@@ -255,6 +270,7 @@ class ExchangeRest(private val client: OkHttpClient) {
     }
 
     private fun get(url: String): JsonElement? {
+        val host = try { java.net.URI(url).host ?: url } catch (_: Exception) { url }
         return try {
             val req = Request.Builder()
                 .url(url)
@@ -262,11 +278,17 @@ class ExchangeRest(private val client: OkHttpClient) {
                 .header("Accept", "application/json")
                 .build()
             client.newCall(req).execute().use { resp ->
-                if (!resp.isSuccessful) return null
+                if (!resp.isSuccessful) {
+                    errors += "$host HTTP ${resp.code}"
+                    android.util.Log.w("exfeed", "$host ${resp.code} $url")
+                    return null
+                }
                 val body = resp.body?.string() ?: return null
                 JsonX.parseToJsonElement(body)
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            errors += "$host ${e.javaClass.simpleName}"
+            android.util.Log.w("exfeed", "fail $url", e)
             null
         }
     }

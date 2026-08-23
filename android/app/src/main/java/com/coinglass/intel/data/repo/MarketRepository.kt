@@ -50,13 +50,15 @@ class MarketRepository(
     private var liveBook: OrderBook? = null
     private val liveTrades = ArrayDeque<TradePrint>()
     private val k1 = linkedMapOf<Double, Candle>()
+    private val k3 = linkedMapOf<Double, Candle>()
     private val k5 = linkedMapOf<Double, Candle>()
+    private val k15 = linkedMapOf<Double, Candle>()
     private var liqLong = 0.0
     private var liqShort = 0.0
     private var liqSeen = false
     private var watchJob: Job? = null
     private var symbol = ""
-    private var chartTf = "1h"
+    private var chartTf = "5m"
     private var boost: Map<String, Double> = emptyMap()
     private val bookHist = ArrayDeque<BookSnap>()
     private var priceMs = 0L
@@ -92,8 +94,16 @@ class MarketRepository(
     }
 
     fun toggleChartTf() {
-        chartTf = if (chartTf == "1h") "4h" else "1h"
+        val order = listOf("1m", "3m", "5m", "15m")
+        chartTf = order[(order.indexOf(chartTf) + 1) % order.size]
         _state.update { it.copy(chartTf = chartTf) }
+    }
+
+    fun setChartTf(tf: String) {
+        if (tf in listOf("1m", "3m", "5m", "15m")) {
+            chartTf = tf
+            _state.update { it.copy(chartTf = chartTf) }
+        }
     }
 
     fun watch(raw: String) {
@@ -107,7 +117,9 @@ class MarketRepository(
         liveBook = null
         liveTrades.clear()
         k1.clear()
+        k3.clear()
         k5.clear()
+        k15.clear()
         liqLong = 0.0
         liqShort = 0.0
         liqSeen = false
@@ -202,10 +214,16 @@ class MarketRepository(
                     close = toFloat(ev.extra["c"]),
                     volume = toFloat(ev.extra["v"]),
                 )
-                val dest = if (interval == "1m") k1 else if (interval == "5m") k5 else null
+                val dest = when (interval) {
+                    "1m" -> k1
+                    "3m" -> k3
+                    "5m" -> k5
+                    "15m" -> k15
+                    else -> null
+                }
                 if (dest != null && t > 0) {
                     dest[t] = c
-                    while (dest.size > 240) dest.remove(dest.keys.first())
+                    while (dest.size > 600) dest.remove(dest.keys.first())
                 }
                 if (c.close > 0) livePrice = c.close
             }
@@ -239,7 +257,10 @@ class MarketRepository(
             liveFunding != 0.0 -> listOf(liveFunding) + (base?.fundingRates ?: emptyList())
             else -> base?.fundingRates.orEmpty()
         }
-        val k5m = if (k5.isNotEmpty()) k5.values.toList() else base?.klines5m.orEmpty()
+        val c1 = if (k1.isNotEmpty()) k1.values.toList() else base?.klines1m.orEmpty()
+        val c3 = if (k3.isNotEmpty()) k3.values.toList() else base?.klines3m.orEmpty()
+        val c5 = if (k5.isNotEmpty()) k5.values.toList() else base?.klines5m.orEmpty()
+        val c15 = if (k15.isNotEmpty()) k15.values.toList() else base?.klines15m.orEmpty()
 
         val input = ScoreInput(
             symbol = symbol,
@@ -253,14 +274,24 @@ class MarketRepository(
             fundingRates = funding,
             lsRatio = base?.lsRatio,
             takerHist = base?.takerHist.orEmpty(),
-            klines5m = k5m,
-            klines15m = base?.klines15m.orEmpty(),
+            klines5m = c5,
+            klines15m = c15,
             klines1h = base?.klines1h.orEmpty(),
             liveLiqLong = liqLong,
             liveLiqShort = liqShort,
+            liqSeen = liqSeen,
+            restErrors = base?.restErrors.orEmpty(),
+            bookHistory = bookHist.toList(),
+            weightBoost = boost,
+            klines1m = c1,
+            klines3m = c3,
+            btcChg24 = base?.btcChg24 ?: 0.0,
+            nextFundingMs = base?.nextFundingMs ?: 0L,
+            minutesToFunding = base?.minutesToFunding ?: 999.0,
         )
         val report = MarketScorer.score(input)
         val live = binance.publicStats.value.connected || binance.marketStats.value.connected
+        if ((base?.oi ?: 0.0) > 0) oiMs = System.currentTimeMillis()
         _state.update {
             it.copy(
                 report = report,
@@ -268,6 +299,14 @@ class MarketRepository(
                 loading = report.price == 0.0,
                 statusLine = if (live) "canli" else "kopuk / REST",
                 lastUpdateMs = System.currentTimeMillis(),
+                candles1m = c1,
+                candles3m = c3,
+                candles5m = c5,
+                candles15m = c15,
+                chartTf = chartTf,
+                fresh = SourceFresh(priceMs, oiMs, fundMs, obMs),
+                restErrors = input.restErrors,
+                liqSeen = liqSeen,
                 conn = ConnStats(
                     public = binance.publicStats.value,
                     market = binance.marketStats.value,

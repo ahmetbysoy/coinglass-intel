@@ -138,6 +138,11 @@ fun IntelScreen(vm: AppViewModel) {
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            if (state.chips.size > 1) {
+                Text("<", color = Accent, fontWeight = FontWeight.Black, modifier = Modifier
+                    .clickable { vm.cycleWatch(-1) }
+                    .padding(8.dp))
+            }
             state.chips.forEach { chip ->
                 val on = chip == state.symbol
                 Text(
@@ -154,6 +159,11 @@ fun IntelScreen(vm: AppViewModel) {
                         }
                         .padding(horizontal = 12.dp, vertical = 6.dp),
                 )
+            }
+            if (state.chips.size > 1) {
+                Text(">", color = Accent, fontWeight = FontWeight.Black, modifier = Modifier
+                    .clickable { vm.cycleWatch(1) }
+                    .padding(8.dp))
             }
         }
         Spacer(Modifier.height(12.dp))
@@ -175,7 +185,12 @@ fun IntelScreen(vm: AppViewModel) {
             Spacer(Modifier.height(10.dp))
             SourceStale(state, cfg.staleSeconds)
             Spacer(Modifier.height(10.dp))
-            val candles = if (state.chartTf == "4h") state.candles4h else state.candles1h
+            val candles = when (state.chartTf) {
+                "1m" -> state.candles1m
+                "3m" -> state.candles3m
+                "15m" -> state.candles15m
+                else -> state.candles5m
+            }
             CandleChart(
                 candles = candles,
                 entry = r?.price ?: 0.0,
@@ -311,6 +326,9 @@ private fun StrategyCard(r: V4Report?, hitLine: String) {
         Spacer(Modifier.height(4.dp))
         Text(r?.strategy ?: "veri bekleniyor…", color = Text, fontSize = 14.sp, fontWeight = FontWeight.Medium)
         Text(hitLine, color = Mute, fontSize = 11.sp, modifier = Modifier.padding(top = 4.dp))
+        if (!r?.why.isNullOrBlank()) {
+            Text("neden: ${r!!.why}", color = Accent, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
+        }
         if (r != null && r.sl > 0 && r.tp > 0) {
             Spacer(Modifier.height(8.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -333,6 +351,14 @@ private fun MetricsGrid(r: V4Report?, liqSeen: Boolean) {
         "CVD" to "${"%+.1f".format(r?.cvdPct ?: 0.0)}%",
         "LIQ L" to liqL,
         "LIQ S" to liqS,
+        "FUND η" to run {
+            val n = r?.nextFundingMs ?: 0L
+            if (n <= 0L) "—"
+            else {
+                val m = ((n - System.currentTimeMillis()) / 60_000L).coerceAtLeast(0)
+                "${m / 60}s ${m % 60}d"
+            }
+        },
     )
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         cells.chunked(3).forEach { row ->
@@ -499,7 +525,27 @@ private fun Onboard() {
         Text("1. Yukarıya herhangi bir USDT pair yaz (sabit liste yok).", color = Text, fontSize = 13.sp)
         Text("2. Yıldıza bas — watchlist senin girdilerin.", color = Text, fontSize = 13.sp)
         Text("3. Tarayıcı |skor| sıralar, İsabet sekmesi settle sonuçlarını gösterir.", color = Text, fontSize = 13.sp)
+        Spacer(Modifier.height(8.dp))
+        Text("uzun bas: terim", color = Mute, fontSize = 11.sp)
+        Glossary("coverage", "kullanilabilen bilesen agirligi; dusukse skor eksik veri")
+        Glossary("spoof", "kitapta durmayan sahte duvar; 50+ ise SL o duvari kullanmaz")
+        Glossary("confluence", "timeframe oylari + hareket buyuklugu")
+        Glossary("netRR", "TP/SL eksi fee ve yakin funding maliyeti")
     }
+}
+
+@Composable
+private fun Glossary(term: String, expl: String) {
+    var open by remember { mutableStateOf(false) }
+    Text(
+        if (open) "$term: $expl" else "· $term",
+        color = if (open) Accent else Mute,
+        fontSize = 12.sp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp)
+            .clickable { open = !open },
+    )
 }
 
 @Composable

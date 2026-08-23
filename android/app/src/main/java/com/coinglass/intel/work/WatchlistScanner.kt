@@ -30,8 +30,10 @@ class WatchlistScanner(
                 tp = report.tp,
                 coverage = report.coverage,
                 updatedAt = System.currentTimeMillis(),
-                candles1hJson = encode(feed.klines1h.takeLast(48)),
-                candles4hJson = encode(feed.klines4h.takeLast(48)),
+                candles1hJson = encode(feed.klines5m.takeLast(48)),
+                candles4hJson = encode(feed.klines15m.takeLast(48)),
+                risk = report.risk,
+                spoof = report.spoof,
             )
             db.snap().upsert(row)
             out += row

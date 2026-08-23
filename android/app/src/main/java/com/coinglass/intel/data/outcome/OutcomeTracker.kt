@@ -76,7 +76,7 @@ class OutcomeTracker(private val db: AppDb) {
 
     suspend fun alignedBoost(): Map<String, Double> {
         val rows = db.outcome().settled15(200)
-        if (rows.size < 8) return emptyMap()
+        if (rows.size < WeightCalibrator.MIN_N) return emptyMap()
         val keys = listOf("ob", "tf", "oi", "funding", "liq", "vol", "mom")
         val avg = mutableMapOf<String, Double>()
         for (k in keys) {
@@ -107,6 +107,6 @@ class OutcomeTracker(private val db: AppDb) {
             }
             if (xs.isNotEmpty()) avg[label] = xs.average()
         }
-        return WeightCalibrator.boost(avg)
+        return WeightCalibrator.boost(avg, rows.size)
     }
 }

@@ -56,7 +56,7 @@ fun CandleChart(
     ) {
         Row(Modifier.fillMaxWidth()) {
             Text("GRAFİK $label", color = Mute, fontSize = 11.sp, letterSpacing = 0.8.sp, modifier = Modifier.weight(1f))
-            Text("1h / 4h", color = Accent, fontSize = 11.sp, modifier = Modifier.padding(start = 8.dp))
+            Text("1m 3m 5m 15m", color = Accent, fontSize = 11.sp, modifier = Modifier.padding(start = 8.dp))
         }
         Text(
             "entry ${fmtPrice(entry)}  sl ${fmtPrice(sl)}  tp ${fmtPrice(tp)}",

@@ -92,6 +92,11 @@ data class ScoreInput(
     val restErrors: List<String> = emptyList(),
     val bookHistory: List<BookSnap> = emptyList(),
     val weightBoost: Map<String, Double> = emptyMap(),
+    val klines1m: List<Candle> = emptyList(),
+    val klines3m: List<Candle> = emptyList(),
+    val btcChg24: Double = 0.0,
+    val nextFundingMs: Long = 0L,
+    val minutesToFunding: Double = 999.0,
 )
 
 data class SimpleSignal(
@@ -148,6 +153,8 @@ data class V4Report(
     val askWall: Double = 0.0,
     val slReason: String = "",
     val hit: HitRate = HitRate(),
+    val why: String = "",
+    val nextFundingMs: Long = 0L,
 )
 
 data class LaneStats(
@@ -173,9 +180,11 @@ data class IntelUiState(
     val loading: Boolean = false,
     val statusLine: String = "sembol gir",
     val chips: List<String> = emptyList(),
-    val candles1h: List<Candle> = emptyList(),
-    val candles4h: List<Candle> = emptyList(),
-    val chartTf: String = "1h",
+    val candles1m: List<Candle> = emptyList(),
+    val candles3m: List<Candle> = emptyList(),
+    val candles5m: List<Candle> = emptyList(),
+    val candles15m: List<Candle> = emptyList(),
+    val chartTf: String = "5m",
     val stale: Boolean = false,
     val inWatchlist: Boolean = false,
     val fresh: SourceFresh = SourceFresh(),

@@ -1,12 +1,3 @@
-# CoinGlass Intel (Android)
+Grafik: 1m 3m 5m 15m, sembol değişince 600 mum REST.
 
-`com.coinglass.intel` · min 26 / target 35
-
-Sekmeler: Canlı · Tarayıcı · İsabet · Ayarlar.
-
-Sembol hardcode yok. Outcome Room’da settle olur. SL/TP ATR + swing + OB duvar.
-
-```bash
-echo "sdk.dir=$HOME/Android/Sdk" > local.properties
-./gradlew :app:testDebugUnitTest :app:assembleDebug
-```
+Spoof>50 duvarı SL yapmaz. netRR fee dahil.

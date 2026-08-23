@@ -56,16 +56,17 @@ object MarketScorer {
         var tw = 0.0
         for ((name, w) in tfW) {
             val mm = mom[name] ?: continue
-            val vote = when {
-                (mm["ret"] ?: 0.0) > 0 -> 1.0
-                (mm["ret"] ?: 0.0) < 0 -> -1.0
-                else -> 0.0
-            }
-            wv += w * vote
+            val atr = max(mm["atr_pct"] ?: 0.15, 0.15)
+            val mag = kotlin.math.tanh((mm["ret"] ?: 0.0) / atr)
+            wv += w * mag
             tw += w
         }
         val confluence = if (tw == 0.0) 0.0 else (wv / tw) * 10.0
-        val atrPct = mom["1h"]?.get("atr_pct") ?: 0.0
+        val atrPct = mom["15m"]?.get("atr_pct") ?: mom["1h"]?.get("atr_pct") ?: 0.0
+        val atrHist = feed.klines15m.mapNotNull {
+            val tr = it.high - it.low
+            if (it.close > 0) tr / it.close * 100.0 else null
+        }
 
         val quality = mapOf(
             "order_book_quality" to if (hasOb) 80.0 else 20.0,
@@ -96,7 +97,7 @@ object MarketScorer {
             Scalper.detectCvdDivergence(closes5, cvdSeries, vols5)
         } else mapOf("divergence" to false, "type" to null, "strength" to 0.0)
         val struct = Structure.from(
-            feed.klines1h.ifEmpty { feed.klines5m },
+            feed.klines15m.ifEmpty { feed.klines5m },
             feed.orderBooks["binance"] ?: feed.orderBooks.values.firstOrNull(),
         )
 
@@ -152,11 +153,21 @@ object MarketScorer {
             else -> "NEUTRAL"
         }
 
-        val risk = Curves.riskScore(atrPct, fundingAvg, lsAvg, vol24)
+        val risk = Curves.riskScore(atrPct, fundingAvg, lsAvg, vol24, atrHist)
         val snapSpoof = analyzeSpoof(feed, lsAvg, aggImb)
         val histSpoof = Structure.spoofFromHistory(feed.bookHistory)
         val spoof = min(100, max(snapSpoof / 2, histSpoof))
-        val strat = generateStrategy(price, direction, atrPct, fundingAvg, lsAvg, aggImb, total, struct)
+        if (feed.symbol != "BTCUSDT" && abs(feed.btcChg24) > 1.2) {
+            if ("BULL" in direction && feed.btcChg24 < -1.2) {
+                warnings += "BTC ${"%+.2f".format(feed.btcChg24)}% duserken alt long — capraz risk"
+            }
+            if ("BEAR" in direction && feed.btcChg24 > 1.2) {
+                warnings += "BTC ${"%+.2f".format(feed.btcChg24)}% yukselirken alt short — capraz risk"
+            }
+        }
+        val strat = generateStrategy(
+            price, direction, atrPct, fundingAvg, lsAvg, aggImb, total, struct, spoof, feed.minutesToFunding,
+        )
 
         fun sig(raw: Double) = SimpleSignal(
             directionalScore = max(min(raw / 100.0, 1.0), -1.0),
@@ -171,7 +182,7 @@ object MarketScorer {
             "volume_signal" to sig(volScore),
             "whale_flow" to sig(cvdPct),
         )
-        val tfPreds = ensembleTf(signals, price)
+        val tfPreds = ensembleTf(signals, WeightCalibrator.toEnsemble(weights))
 
         val lines = mutableListOf(
             "$pair  ${fmtPrice(price)}  24h ${"%+.2f".format(chg24)}%  vol ${fmtUsd(vol24)}",
@@ -236,6 +247,8 @@ object MarketScorer {
             bidWall = struct.bidWall,
             askWall = struct.askWall,
             slReason = strat.reason,
+            why = whyLine(aggImb, cvdPct, oiScore, fundingScore),
+            nextFundingMs = feed.nextFundingMs,
         )
     }
 
@@ -275,18 +288,20 @@ object MarketScorer {
         imb: Double,
         totalScore: Double,
         structure: StructureLevels,
+        spoofScore: Int,
+        minutesToFunding: Double,
     ): Strat {
-        val lv = Curves.slTp(price, direction, atrPct, totalScore, structure)
+        val lv = Curves.slTp(price, direction, atrPct, totalScore, structure, spoofScore, funding, minutesToFunding)
         val sl = lv.sl
         val tp = lv.tp
         val slPct = lv.slPct
         val tpPct = lv.tpPct
-        val rr = if (slPct == 0.0) 0.0 else tpPct / slPct
+        val rr = lv.netRr
         val strategy = when {
             "BULL" in direction ->
-                "LONG entry ~${fmtPrice(price)}  SL ${fmtPrice(sl)} (-${"%.2f".format(slPct)}%)  TP ${fmtPrice(tp)} (+${"%.2f".format(tpPct)}%)  RR ${"%.2f".format(rr)}"
+                "LONG entry ~${fmtPrice(price)}  SL ${fmtPrice(sl)} (-${"%.2f".format(slPct)}%)  TP ${fmtPrice(tp)} (+${"%.2f".format(tpPct)}%)  netRR ${"%.2f".format(rr)}"
             "BEAR" in direction ->
-                "SHORT entry ~${fmtPrice(price)}  SL ${fmtPrice(sl)} (+${"%.2f".format(slPct)}%)  TP ${fmtPrice(tp)} (-${"%.2f".format(tpPct)}%)  RR ${"%.2f".format(rr)}"
+                "SHORT entry ~${fmtPrice(price)}  SL ${fmtPrice(sl)} (+${"%.2f".format(slPct)}%)  TP ${fmtPrice(tp)} (-${"%.2f".format(tpPct)}%)  netRR ${"%.2f".format(rr)}"
             else ->
                 "NEUTRAL — range. Destek ${fmtPrice(sl)} / Direnc ${fmtPrice(tp)}"
         }
@@ -300,14 +315,6 @@ object MarketScorer {
         return Strat(strategy, warns, sl, tp, lv.reason)
     }
 
-    private val ensembleWeights = mapOf(
-        "oi_momentum" to 0.20,
-        "funding_signal" to 0.15,
-        "liq_pressure" to 0.20,
-        "ob_imbalance" to 0.15,
-        "volume_signal" to 0.15,
-        "whale_flow" to 0.15,
-    )
     private val tfMods = mapOf(
         "1m" to mapOf(
             "oi_momentum" to 0.6, "funding_signal" to 0.3, "liq_pressure" to 0.8,
@@ -323,12 +330,30 @@ object MarketScorer {
         ),
     )
 
-    private fun ensembleTf(signals: Map<String, SimpleSignal>, price: Double): List<TfPred> {
+    private fun whyLine(ob: Double, tf: Double, oi: Double, fund: Double): String {
+        data class Bit(val name: String, val v: Double, val txt: String)
+        return listOf(
+            Bit("OB", ob, if (ob > 0) "bid agir" else "ask agir"),
+            Bit("CVD", tf, if (tf > 0) "alim baskisi" else "satim baskisi"),
+            Bit("OI", oi, if (oi > 0) "pozisyon aciliyor" else "pozisyon kapaniyor"),
+            Bit("FUND", fund, if (fund > 0) "short crowded" else "long crowded"),
+        ).sortedByDescending { abs(it.v) }.take(2).joinToString(" + ") { "${it.name} ${it.txt}" }
+    }
+
+    private fun ensembleTf(signals: Map<String, SimpleSignal>, weights: Map<String, Double>): List<TfPred> {
+        val base = if (weights.isEmpty()) mapOf(
+            "oi_momentum" to 0.20,
+            "funding_signal" to 0.15,
+            "liq_pressure" to 0.20,
+            "ob_imbalance" to 0.15,
+            "volume_signal" to 0.15,
+            "whale_flow" to 0.15,
+        ) else weights
         return listOf("1m", "5m", "15m").map { tf ->
             val mods = tfMods[tf] ?: emptyMap()
             var ws = 0.0
             var wt = 0.0
-            for ((k, bw) in ensembleWeights) {
+            for ((k, bw) in base) {
                 val sig = signals[k]
                 val sc = sig?.directionalScore ?: 0.0
                 val st = max(sig?.signalStrength ?: 0.0, 0.1)

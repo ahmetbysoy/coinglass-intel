@@ -2,94 +2,58 @@
 
 Native Kotlin / Jetpack Compose telefon istihbaratı.
 
-```
-sembol yaz → fiyat + STRATEJİ (ilk bakış) → skor → yapıya duyarlı SL/TP
-```
+Sembol **hardcode değil**. Watchlist = senin yazdığın pair (Room).
 
-Cihazda tarayıcı / mitm yok. Public WebSocket + REST.
+## Grafik
 
-Sembol listesi **hardcode değil**. Watchlist = senin yazdığın pair’ler (Room). Boş açılışta 3 adımlık “nasıl çalışır”, önerilen coin chip’i yok.
+Sadece **1m / 3m / 5m / 15m**. Dokunarak döner.
+
+Sembol değişince REST **600 mum** çeker (Binance `limit=600`), sonra WS canlı günceller. Boş grafik kalmaz.
+
+## Para kaybettiren bug (düzeltildi)
+
+Spoof skoru **50+** ise `bidWall`/`askWall` SL/TP’ye **girmez** — sadece ATR + volume-area (VAL/VAH).
+
+`netRR = (tp − fee − yakın funding) / (sl + fee)`  fee ≈ 0.08% round-trip.
+
+## Kalibrasyon
+
+- n < 8: boost yok
+- 8–29: yarı güç
+- ≥ 30: tam `tanh` boost
+
+Aynı ağırlık haritası hem ana skor hem `ensembleTf` (1m/5m/15m) için kullanılır.
+
+## Sinyal
+
+- Confluence: `tanh(ret/atr)` büyüklük
+- Destek/direnç: volume-weighted value area (POC bandı), fractal değil
+- Risk: ATR geçmişinin yüzdeliği (statik >4 yerine)
+- Alt sinyal BTC 24s ile çelişirse uyarı
+- CVD: hacim ağırlıklı eğim
 
 ## Ekranlar
 
-| Tab | Ne |
+| Tab | |
 |---|---|
-| Canlı | Strateji kartı fiyatın hemen altında. Kaynak-bazlı BAYAT (fiyat/OI/fund/OB). 1h/4h mum + swing/OB duvar overlay. |
-| Tarayıcı | Watchlist `\|skor\|` sıra. VS ile 2 sembol karşılaştır. |
-| İsabet | Room outcome settle: t+5m/15m/1h, win/loss, 15m win-rate. |
-| Ayarlar | Bildirim, FGS, koyu/açık tema, eşikler, bayat sn. Tema toggle bağlı. |
+| Canlı | Fiyat → strateji + neden + netRR → skor → 1m/3m/5m/15m grafik |
+| Tarayıcı | `\|skor\|` + R/S rozeti + VS karşılaştırma |
+| İsabet | WR + expectancy + R-multiple |
+| Ayarlar | bildirim, FGS, tema, eşikler |
 
-## Sinyal / kanıt
-
-- Her skor 2 dk dedup ile `outcomes` tablosuna yazılır.
-- 5m / 15m / 1h sonra gerçek fiyatla `win` işaretlenir.
-- Strateji kartı: `bu tahmin gecmiste %X isabetli (n=N, 15m)`.
-- n≥8 settle olunca bileşen ağırlıkları aligned-return ile `tanh` boost alır (sabit kalmaz).
-
-## SL/TP (structure)
-
-ATR yüzdesi taban. Yakındaki swing support/resistance ve OB duvarı ATR bandının içindeyse SL/TP onları kullanır. Kaynak satırı: `atr+swing-sup+ob-bid`.
-
-## Spoof
-
-Snapshot 10× medyan tek başına yetmez. Book geçmişinde 1.5–12 sn içinde kaybolan duvar `spoofFromHistory`.
-
-## CVD divergence
-
-Hacim ağırlıklı eğim + son barlar medyan hacmin altındaysa sinyal yok.
+Watchlist `<` `>` ile klavyesiz geçiş. Funding kalan süre `FUND η`.
 
 ## Ağ
 
-| Kaynak | Ne |
-|---|---|
-| `wss://fstream.binance.com/public/stream` | `@trade` + `@depth20@100ms` |
-| `wss://fstream.binance.com/market/stream` | kline / markPrice / forceOrder |
-| `wss://wss.coinglass.com/ws` | gzip `liq` |
-| Binance / Bybit / OKX REST | ~20 sn yedek |
+`/public` trade+depth · `/market` kline 1/3/5/15 + mark + forceOrder · CG liq · REST 600 mum.
 
-REST hataları artık yutulmuyor: log + UI `REST host HTTP 451`. Coverage neden düştüğü görünür.
+## CI
 
-Likidasyon: hiç frame yoksa **N/A**, frame var ve 0 ise **$0**. Sessiz sıfır yok.
-
-Binance 2026: unrouted `/ws` sadece `/public`. `@trade` canlı testte `/public`.
-
-## Bildirim tek otorite
-
-- Foreground service açıkken yalnızca o bildirir (30 sn).
-- Kapalıysa WorkManager 15 dk Room doldurur **ve** o zaman bildirir.
-- İkisi birden aynı anda push etmez.
-
-## Proje
-
-```
-android/                 Compose uygulama
-python/engine/           curves + history_store (CI unit)
-.github/workflows/apk.yml
-```
-
-minSdk 26 · targetSdk 35 · Room v2 (`outcomes`) · WorkManager · DataStore · OkHttp
-
-## APK (CI)
-
-push / PR / workflow_dispatch:
-
-1. `python -m unittest` (`python/tests`)
-2. `./gradlew :app:testDebugUnitTest`
-3. `assembleDebug` → artifact **`app-debug`**
-
-## Yerel
+`python -m unittest` + `:app:testDebugUnitTest` + `assembleDebug` → `app-debug`
 
 ```bash
-cd android
-echo "sdk.dir=$HOME/Android/Sdk" > local.properties
-./gradlew :app:assembleDebug
+cd android && ./gradlew :app:testDebugUnitTest :app:assembleDebug
 cd ../python && python -m unittest discover -s tests -v
 ```
 
-## Temizlik
-
-Kullanılmayan `IntelViewModel` (BTCUSDT hardcode) silindi. `__pycache__` yok.
-
-## Not
-
-Skor istihbarattır, emir göndermez. n=0 isabette kör güvenme. Coverage veya REST hataları varsa küçült.
+Skor istihbarattır, emir göndermez.

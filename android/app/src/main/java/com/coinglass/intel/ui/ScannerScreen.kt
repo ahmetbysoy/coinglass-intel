@@ -112,10 +112,18 @@ fun ScannerScreen(
                         )
                         if (stale) Text("BAYAT VERİ", color = Warn, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            "%+.1f".format(s.score),
+                            color = col, fontSize = 22.sp, fontWeight = FontWeight.Black,
+                            fontFamily = FontFamily.Monospace,
+                        )
+                        Text("R${s.risk} S${s.spoof}", color = if (s.spoof >= 50) Bear else Mute, fontSize = 10.sp)
+                    }
                     Text(
-                        "%+.1f".format(s.score),
-                        color = col, fontSize = 22.sp, fontWeight = FontWeight.Black,
-                        fontFamily = FontFamily.Monospace,
+                        if (s.symbol in compare) "VS*" else "VS",
+                        color = Accent, fontSize = 11.sp, fontWeight = FontWeight.Bold,
+                        modifier = Modifier.clickable { onCompare(s.symbol) }.padding(8.dp),
                     )
                     IconButton(onClick = { onRemove(s.symbol) }) {
                         Icon(Icons.Default.Delete, contentDescription = "cikar", tint = Mute)
