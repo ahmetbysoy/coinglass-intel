@@ -6,6 +6,8 @@ import com.coinglass.intel.data.ws.CoinGlassLiqWs
 import com.coinglass.intel.data.ws.CrossBookWs
 import com.coinglass.intel.domain.Analyzers
 import com.coinglass.intel.domain.ChartSeries
+import com.coinglass.intel.domain.LiqHeat
+import com.coinglass.intel.domain.LiqPrint
 import com.coinglass.intel.domain.MarketScorer
 import com.coinglass.intel.domain.Symbols
 import com.coinglass.intel.domain.model.BookSnap
@@ -61,6 +63,7 @@ class MarketRepository(
     private var liqLong = 0.0
     private var liqShort = 0.0
     private var liqSeen = false
+    private val liqPrints = ArrayDeque<LiqPrint>()
     private var watchJob: Job? = null
     private var symbol = ""
     private var chartTf = "5m"
@@ -138,6 +141,7 @@ class MarketRepository(
         liqLong = 0.0
         liqShort = 0.0
         liqSeen = false
+        liqPrints.clear()
         bookHist.clear()
         priceMs = 0L; oiMs = 0L; fundMs = 0L; obMs = 0L; restMs = 0L; bybitMs = 0L; okxMs = 0L
         binance.stop()
@@ -269,10 +273,11 @@ class MarketRepository(
             "forceOrder", "liquidation" -> {
                 liqSeen = true
                 val usd = ev.sizeUsd
-                when (ev.side) {
-                    "long", "sell" -> liqLong += usd
-                    "short", "buy" -> liqShort += usd
-                    else -> liqShort += usd
+                val longSide = ev.side == "long" || ev.side == "sell"
+                if (longSide) liqLong += usd else liqShort += usd
+                if (ev.price > 0 && usd > 0) {
+                    liqPrints.addLast(LiqPrint(ev.price, usd, longSide))
+                    while (liqPrints.size > 400) liqPrints.removeFirst()
                 }
             }
         }
@@ -365,6 +370,7 @@ class MarketRepository(
         watchJob?.cancel()
         binance.stop()
         cg.stop()
+        cross.stop()
     }
 
     companion object {

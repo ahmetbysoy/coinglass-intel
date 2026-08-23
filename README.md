@@ -8,15 +8,19 @@ Sembol **hardcode değil**. Watchlist = senin yazdığın pair (Room).
 
 Tek satır + A/B/C/D. **GİRME** kırmızı: spoof≥50 / coverage<%40 / netRR<1.
 
-İlk açılış 3 adımlı tur. Ayarlar’dan tekrar.
+## Likidasyon haritası
 
-## Widget
+Canlı `forceOrder` + CoinGlass liq, fiyat kademesine (24 bin) yığılır.
 
-Ana ekran widget: Room watchlist’ten `|skor|` top 3. Watchlist boşsa “pair yaz” — BTC/ETH yok.
+- Sol kırmızı = long liq
+- Sağ yeşil = short liq
+- Grafiğin sağ şeridinde overlay
+
+DOM kitap değil — gerçek tasfiye akışı.
 
 ## Grafik
 
-**1m / 3m / 5m / 15m**. Pinch zoom + kaydırma. REST 600 seed, WS ezmez.
+**1m / 3m / 5m / 15m**. Pinch + kaydırma. REST 600 seed.
 
 ## CI
 

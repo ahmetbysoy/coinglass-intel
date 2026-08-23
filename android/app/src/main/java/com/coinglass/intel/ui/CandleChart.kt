@@ -39,6 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.coinglass.intel.domain.ChartSeries
+import com.coinglass.intel.domain.LiqHeat
 import com.coinglass.intel.domain.fmtPrice
 import com.coinglass.intel.domain.model.Candle
 import com.coinglass.intel.ui.theme.Bear
@@ -185,6 +186,22 @@ fun CandleChart(
                         drawRect(col, Offset(x - bodyW / 2f, top), Size(bodyW, h))
                         val vh = (volH * (c.volume / maxVol).toFloat()).coerceAtLeast(1f)
                         drawRect(col.copy(alpha = 0.45f), Offset(x - bodyW / 2f, size.height - vh), Size(bodyW, vh))
+                    }
+                    if (!liqHeat.empty) {
+                        val strip = size.width * 0.14f
+                        val left = size.width - strip
+                        val maxU = liqHeat.maxUsd
+                        for (b in liqHeat.bins) {
+                            if (b.total <= 0) continue
+                            val y1 = y(b.hi)
+                            val y2 = y(b.lo)
+                            val top = minOf(y1, y2)
+                            val hh = kotlin.math.abs(y2 - y1).coerceAtLeast(1.2f)
+                            val wL = strip * 0.46f * (b.longUsd / maxU).toFloat()
+                            val wS = strip * 0.46f * (b.shortUsd / maxU).toFloat()
+                            if (wL > 0) drawRect(Bear.copy(alpha = 0.40f), Offset(left + strip * 0.5f - wL, top), Size(wL, hh))
+                            if (wS > 0) drawRect(Bull.copy(alpha = 0.40f), Offset(left + strip * 0.5f, top), Size(wS, hh))
+                        }
                     }
                     if (divergeType.isNotBlank()) {
                         val last = shown.last()

@@ -1,1 +1,1 @@
-v1.5: home widget (watchlist only), chart pinch-zoom.
+v1.6: liq heatmap (price bins) + chart overlay.

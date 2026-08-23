@@ -1,5 +1,7 @@
 package com.coinglass.intel.domain.model
 
+import com.coinglass.intel.domain.LiqHeat
+
 data class StreamEvent(
     val channel: String,
     val kind: String,
@@ -204,4 +206,5 @@ data class IntelUiState(
     val liqSeen: Boolean = false,
     val bids: List<Pair<Double, Double>> = emptyList(),
     val asks: List<Pair<Double, Double>> = emptyList(),
+    val liqHeat: LiqHeat.Grid = LiqHeat.Grid(),
 )

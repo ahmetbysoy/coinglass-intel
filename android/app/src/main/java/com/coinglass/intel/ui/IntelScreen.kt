@@ -201,6 +201,8 @@ fun IntelScreen(vm: AppViewModel) {
             Spacer(Modifier.height(10.dp))
             LiqPulse(r, state.liqSeen)
             Spacer(Modifier.height(10.dp))
+            LiqHeatmap(state.liqHeat, r?.price ?: state.lastPrice)
+            Spacer(Modifier.height(10.dp))
             StrategyCard(r, state.hit.line, state.chartTf)
             Spacer(Modifier.height(10.dp))
             SourceStale(state, cfg.staleSeconds)
@@ -225,6 +227,7 @@ fun IntelScreen(vm: AppViewModel) {
                 poc = r?.poc ?: 0.0,
                 spoof = r?.spoof ?: 0,
                 divergeType = r?.divergeType.orEmpty(),
+                liqHeat = state.liqHeat,
             )
             Spacer(Modifier.height(10.dp))
             Components(r)
@@ -636,6 +639,7 @@ private fun Onboard() {
         Glossary("netRR", "TP/SL eksi fee ve yakin funding maliyeti")
         Glossary("grafik", "1m/3m/5m/15m chip; 600 mum REST seed, WS ezmez; VAL/VAH bant")
         Glossary("not", "A/B/C/D = coverage+confluence+spoof+risk+netRR ozeti")
+        Glossary("liq map", "forceOrder+CG liq fiyat kademesine yığılır; sol long, sağ short")
     }
 }
 
