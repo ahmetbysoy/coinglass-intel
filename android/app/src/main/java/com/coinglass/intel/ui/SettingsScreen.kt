@@ -6,6 +6,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,27 +14,42 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -42,8 +58,11 @@ import com.coinglass.intel.data.db.AlarmEntity
 import com.coinglass.intel.data.settings.UserSettings
 import com.coinglass.intel.domain.AlarmKind
 import com.coinglass.intel.domain.AlarmOp
+import com.coinglass.intel.domain.PrefsFormat
 import com.coinglass.intel.ui.theme.Radii
 import com.coinglass.intel.ui.theme.Space
+import java.util.Locale
+import kotlin.math.roundToInt
 
 @Composable
 fun SettingsScreen(
@@ -56,62 +75,104 @@ fun SettingsScreen(
     onDeleteAlarm: (Long) -> Unit = {},
 ) {
     val scheme = MaterialTheme.colorScheme
-    val perm = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
-        if (ok) onChange { it.copy(notificationsEnabled = true) }
+    val perm = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        onChange { it.copy(notificationsEnabled = granted) }
     }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(scheme.background)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = Space.lg),
+        verticalArrangement = Arrangement.spacedBy(Space.md),
     ) {
-        Text("AYARLAR", color = scheme.primary, fontWeight = FontWeight.Black, letterSpacing = 1.2.sp, fontSize = 13.sp)
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(Space.sm))
+        Text(
+            stringResource(R.string.settings_title),
+            color = scheme.primary,
+            fontWeight = FontWeight.Black,
+            letterSpacing = 1.2.sp,
+            fontSize = 13.sp,
+        )
 
-        Panel {
-            Toggle("Bildirimler", s.notificationsEnabled) { on ->
+        SectionCard(Icons.Filled.Notifications, stringResource(R.string.section_general)) {
+            Toggle(stringResource(R.string.pref_notifications), s.notificationsEnabled) { on ->
                 if (on && Build.VERSION.SDK_INT >= 33) {
                     perm.launch(Manifest.permission.POST_NOTIFICATIONS)
+                } else {
+                    onChange { it.copy(notificationsEnabled = on) }
                 }
-                onChange { it.copy(notificationsEnabled = on) }
             }
-            Toggle("On plan servisi (sesli uyari)", s.serviceEnabled) { on ->
-                onToggleService(on)
-            }
-            Toggle("Koyu tema", s.darkTheme) { on -> onChange { it.copy(darkTheme = on) } }
-            Toggle("Turı tekrar göster", !s.onboardDone) { on ->
-                onChange { it.copy(onboardDone = !on) }
-            }
-            Toggle("Fırsat bildirimi (keşif A/B)", s.opportunityNotify) { on ->
+            Toggle(stringResource(R.string.pref_foreground_service), s.serviceEnabled, onToggleService)
+            Toggle(stringResource(R.string.pref_opportunity_notify), s.opportunityNotify) { on ->
                 onChange { it.copy(opportunityNotify = on) }
             }
-            Toggle("Oto kağıt (A/B + GİRME yok)", s.autoPaper) { on ->
+            Toggle(stringResource(R.string.pref_auto_paper), s.autoPaper) { on ->
                 onChange { it.copy(autoPaper = on) }
             }
         }
-        Spacer(Modifier.height(Space.md))
-        Panel {
-            SliderRow("Skor esigi |s|", s.scoreAlertAbs, 5.0, 80.0, "%.0f") {
-                onChange { c -> c.copy(scoreAlertAbs = it) }
+
+        SectionCard(Icons.Filled.Palette, stringResource(R.string.section_appearance)) {
+            Toggle(stringResource(R.string.pref_dark_theme), s.darkTheme) { on ->
+                onChange { it.copy(darkTheme = on) }
             }
-            SliderRow("Likidasyon esigi $", s.liqAlertUsd, 50_000.0, 2_000_000.0, "%.0f") {
-                onChange { c -> c.copy(liqAlertUsd = it) }
-            }
-            SliderRow("Balina esigi $", s.whaleAlertUsd, 100_000.0, 5_000_000.0, "%.0f") {
-                onChange { c -> c.copy(whaleAlertUsd = it) }
-            }
-            SliderRow("Bayat veri (sn)", s.staleSeconds.toDouble(), 5.0, 120.0, "%.0f") {
-                onChange { c -> c.copy(staleSeconds = it.toInt()) }
-            }
-            SliderRow("Bakiye $", s.equityUsd, 100.0, 100_000.0, "%.0f") {
-                onChange { c -> c.copy(equityUsd = it) }
-            }
-            SliderRow("Risk % / islem", s.riskPct, 0.25, 5.0, "%.2f") {
-                onChange { c -> c.copy(riskPct = it) }
+            Toggle(stringResource(R.string.pref_show_tour), !s.onboardDone) { on ->
+                onChange { it.copy(onboardDone = !on) }
             }
         }
-        Spacer(Modifier.height(Space.md))
+
+        SectionCard(Icons.Filled.Tune, stringResource(R.string.section_thresholds)) {
+            SliderRow(
+                label = stringResource(R.string.pref_score_threshold),
+                value = s.scoreAlertAbs,
+                min = 5.0,
+                max = 80.0,
+                display = { PrefsFormat.fmt("%.0f", it) },
+            ) { v -> onChange { it.copy(scoreAlertAbs = v) } }
+            LogSliderRow(
+                label = stringResource(R.string.pref_liq_threshold),
+                value = s.liqAlertUsd,
+                min = 50_000.0,
+                max = 2_000_000.0,
+            ) { v -> onChange { it.copy(liqAlertUsd = v) } }
+            LogSliderRow(
+                label = stringResource(R.string.pref_whale_threshold),
+                value = s.whaleAlertUsd,
+                min = 100_000.0,
+                max = 5_000_000.0,
+            ) { v -> onChange { it.copy(whaleAlertUsd = v) } }
+            SliderRow(
+                label = stringResource(R.string.pref_stale_seconds),
+                value = s.staleSeconds.toDouble(),
+                min = 5.0,
+                max = 120.0,
+                display = { "${it.roundToInt()} sn" },
+            ) { v -> onChange { it.copy(staleSeconds = v.roundToInt()) } }
+        }
+
+        SectionCard(Icons.Filled.Tune, stringResource(R.string.section_risk)) {
+            LogSliderRow(
+                label = stringResource(R.string.pref_equity),
+                value = s.equityUsd,
+                min = 100.0,
+                max = 100_000.0,
+            ) { v -> onChange { it.copy(equityUsd = v) } }
+            SliderRow(
+                label = stringResource(R.string.pref_risk_pct),
+                value = s.riskPct,
+                min = 0.25,
+                max = 5.0,
+                display = { PrefsFormat.fmt("%.2f", it) + " %" },
+            ) { v -> onChange { it.copy(riskPct = v) } }
+            val riskUsd = s.equityUsd * s.riskPct / 100.0
+            Text(
+                stringResource(R.string.risk_summary, PrefsFormat.compactUsd(riskUsd)),
+                color = scheme.onSurfaceVariant,
+                fontSize = 12.sp,
+            )
+        }
+
         AlarmPanel(
             alarms = alarms,
             onAdd = onAddAlarm,
@@ -119,16 +180,15 @@ fun SettingsScreen(
             onDelete = onDeleteAlarm,
         )
         Spacer(Modifier.height(Space.xl))
-        Text(
-            "Tema switch artık gerçek: açık = pastel zemin, skor yeşil/kırmızı pastelleşmez. Sembol listesi hardcode değil.",
-            color = scheme.onSurfaceVariant, fontSize = 12.sp,
-        )
-        Spacer(Modifier.height(32.dp))
     }
 }
 
 @Composable
-private fun Panel(content: @Composable () -> Unit) {
+private fun SectionCard(
+    icon: ImageVector,
+    title: String,
+    content: @Composable () -> Unit,
+) {
     val scheme = MaterialTheme.colorScheme
     Column(
         Modifier
@@ -137,15 +197,22 @@ private fun Panel(content: @Composable () -> Unit) {
             .background(scheme.surface)
             .border(1.dp, scheme.outline, RoundedCornerShape(Radii.lg))
             .padding(Space.md),
-        content = { content() },
-    )
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, contentDescription = null, tint = scheme.primary)
+            Spacer(Modifier.width(Space.sm))
+            Text(title, color = scheme.primary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+        }
+        Spacer(Modifier.height(Space.sm))
+        content()
+    }
 }
 
 @Composable
 private fun Toggle(label: String, value: Boolean, on: (Boolean) -> Unit) {
     val scheme = MaterialTheme.colorScheme
     Row(
-        Modifier.fillMaxWidth().padding(vertical = 6.dp),
+        Modifier.fillMaxWidth().padding(vertical = Space.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(label, color = scheme.onSurface, modifier = Modifier.weight(1f), fontSize = 15.sp)
@@ -154,14 +221,55 @@ private fun Toggle(label: String, value: Boolean, on: (Boolean) -> Unit) {
 }
 
 @Composable
-private fun SliderRow(label: String, value: Double, min: Double, max: Double, fmt: String, on: (Double) -> Unit) {
+private fun SliderRow(
+    label: String,
+    value: Double,
+    min: Double,
+    max: Double,
+    display: (Double) -> String,
+    onCommit: (Double) -> Unit,
+) {
     val scheme = MaterialTheme.colorScheme
-    Column(Modifier.fillMaxWidth().padding(vertical = Space.sm)) {
-        Text("$label  ${fmt.format(value)}", color = scheme.onSurface, fontSize = 14.sp)
+    var local by remember(value) { mutableStateOf(value.toFloat()) }
+    Column(Modifier.fillMaxWidth().padding(vertical = Space.xs)) {
+        Row(Modifier.fillMaxWidth()) {
+            Text(label, modifier = Modifier.weight(1f), color = scheme.onSurface, fontSize = 14.sp)
+            Text(display(local.toDouble()), color = scheme.primary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+        }
         Slider(
-            value = value.toFloat().coerceIn(min.toFloat(), max.toFloat()),
-            onValueChange = { on(it.toDouble()) },
+            value = local.coerceIn(min.toFloat(), max.toFloat()),
+            onValueChange = { local = it },
+            onValueChangeFinished = { onCommit(local.toDouble()) },
             valueRange = min.toFloat()..max.toFloat(),
+        )
+    }
+}
+
+@Composable
+private fun LogSliderRow(
+    label: String,
+    value: Double,
+    min: Double,
+    max: Double,
+    onCommit: (Double) -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+    var t by remember(value) { mutableStateOf(PrefsFormat.logToLinear(value, min, max)) }
+    Column(Modifier.fillMaxWidth().padding(vertical = Space.xs)) {
+        Row(Modifier.fillMaxWidth()) {
+            Text(label, modifier = Modifier.weight(1f), color = scheme.onSurface, fontSize = 14.sp)
+            Text(
+                PrefsFormat.compactUsd(PrefsFormat.linearToLog(t, min, max)),
+                color = scheme.primary,
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp,
+            )
+        }
+        Slider(
+            value = t,
+            onValueChange = { t = it },
+            onValueChangeFinished = { onCommit(PrefsFormat.linearToLog(t, min, max)) },
+            valueRange = 0f..1f,
         )
     }
 }
@@ -174,38 +282,78 @@ private fun AlarmPanel(
     onDelete: (Long) -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
-    var symbol by remember { mutableStateOf("") }
-    var kind by remember { mutableStateOf(AlarmKind.PRICE) }
-    var op by remember { mutableStateOf(AlarmOp.GTE) }
-    var th by remember { mutableStateOf("") }
-    var label by remember { mutableStateOf("") }
-    Panel {
-        Text(stringResource(R.string.alarm_title), color = scheme.primary, fontWeight = FontWeight.Black, fontSize = 13.sp)
+    var symbol by rememberSaveable { mutableStateOf("") }
+    var kindName by rememberSaveable { mutableStateOf(AlarmKind.PRICE.name) }
+    var opName by rememberSaveable { mutableStateOf(AlarmOp.GTE.name) }
+    var th by rememberSaveable { mutableStateOf("") }
+    var label by rememberSaveable { mutableStateOf("") }
+    var showErrors by rememberSaveable { mutableStateOf(false) }
+    var pendingDeleteId by rememberSaveable { mutableStateOf<Long?>(null) }
+
+    val kind = runCatching { AlarmKind.valueOf(kindName) }.getOrDefault(AlarmKind.PRICE)
+    val op = runCatching { AlarmOp.valueOf(opName) }.getOrDefault(AlarmOp.GTE)
+    val thValue = th.replace(',', '.').toDoubleOrNull()
+    val symbolError = showErrors && symbol.isBlank()
+    val thError = showErrors && thValue == null
+    val pending = alarms.firstOrNull { it.id == pendingDeleteId }
+
+    SectionCard(Icons.Filled.NotificationsActive, stringResource(R.string.alarm_title)) {
         Text(stringResource(R.string.alarm_hint), color = scheme.onSurfaceVariant, fontSize = 12.sp)
         Spacer(Modifier.height(Space.sm))
         OutlinedTextField(
             value = symbol,
-            onValueChange = { symbol = it.uppercase() },
+            onValueChange = { symbol = it.uppercase(Locale.ROOT) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
+            isError = symbolError,
+            supportingText = if (symbolError) {
+                { Text(stringResource(R.string.alarm_symbol_required)) }
+            } else {
+                null
+            },
             label = { Text(stringResource(R.string.alarm_symbol)) },
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
         )
-        Row(Modifier.fillMaxWidth().padding(top = Space.sm), verticalAlignment = Alignment.CenterVertically) {
-            KindChip("fiyat", kind == AlarmKind.PRICE) { kind = AlarmKind.PRICE }
-            KindChip("|skor|", kind == AlarmKind.SCORE) { kind = AlarmKind.SCORE }
-            KindChip("|fund|", kind == AlarmKind.FUNDING) { kind = AlarmKind.FUNDING }
+        Row(
+            Modifier.fillMaxWidth().padding(top = Space.sm),
+            horizontalArrangement = Arrangement.spacedBy(Space.xs),
+        ) {
+            FilterChip(
+                selected = kind == AlarmKind.PRICE,
+                onClick = { kindName = AlarmKind.PRICE.name },
+                label = { Text(stringResource(R.string.alarm_kind_price)) },
+            )
+            FilterChip(
+                selected = kind == AlarmKind.SCORE,
+                onClick = { kindName = AlarmKind.SCORE.name },
+                label = { Text(stringResource(R.string.alarm_kind_score)) },
+            )
+            FilterChip(
+                selected = kind == AlarmKind.FUNDING,
+                onClick = { kindName = AlarmKind.FUNDING.name },
+                label = { Text(stringResource(R.string.alarm_kind_funding)) },
+            )
         }
-        Row(Modifier.fillMaxWidth().padding(top = Space.xs), verticalAlignment = Alignment.CenterVertically) {
-            KindChip("≥", op == AlarmOp.GTE) { op = AlarmOp.GTE }
-            KindChip("≤", op == AlarmOp.LTE) { op = AlarmOp.LTE }
+        Row(
+            Modifier.fillMaxWidth().padding(top = Space.xs),
+            horizontalArrangement = Arrangement.spacedBy(Space.xs),
+        ) {
+            FilterChip(selected = op == AlarmOp.GTE, onClick = { opName = AlarmOp.GTE.name }, label = { Text("≥") })
+            FilterChip(selected = op == AlarmOp.LTE, onClick = { opName = AlarmOp.LTE.name }, label = { Text("≤") })
         }
         OutlinedTextField(
             value = th,
             onValueChange = { th = it },
             modifier = Modifier.fillMaxWidth().padding(top = Space.sm),
             singleLine = true,
+            isError = thError,
+            supportingText = if (thError) {
+                { Text(stringResource(R.string.alarm_threshold_invalid)) }
+            } else {
+                null
+            },
             label = { Text(stringResource(R.string.alarm_threshold)) },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
         )
         OutlinedTextField(
             value = label,
@@ -213,27 +361,27 @@ private fun AlarmPanel(
             modifier = Modifier.fillMaxWidth().padding(top = Space.xs),
             singleLine = true,
             label = { Text(stringResource(R.string.alarm_label)) },
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
         )
-        Text(
-            stringResource(R.string.alarm_add),
-            color = scheme.onPrimary,
-            fontWeight = FontWeight.Bold,
-            fontSize = 13.sp,
-            modifier = Modifier
-                .padding(top = Space.sm)
-                .clip(RoundedCornerShape(Radii.sm))
-                .background(scheme.primary)
-                .clickable {
-                    val v = th.replace(",", ".").toDoubleOrNull()
-                    if (v != null) {
-                        onAdd(symbol, kind, op, v, label)
-                        symbol = ""
-                        th = ""
-                        label = ""
-                    }
+        Button(
+            onClick = {
+                if (symbol.isBlank() || thValue == null) {
+                    showErrors = true
+                } else {
+                    onAdd(symbol.trim(), kind, op, thValue, label.trim())
+                    symbol = ""
+                    th = ""
+                    label = ""
+                    showErrors = false
                 }
-                .padding(horizontal = Space.md, vertical = Space.sm),
-        )
+            },
+            modifier = Modifier.padding(top = Space.sm),
+        ) {
+            Icon(Icons.Filled.Add, contentDescription = null)
+            Spacer(Modifier.width(Space.xs))
+            Text(stringResource(R.string.alarm_add))
+        }
+
         if (alarms.isEmpty()) {
             Text(
                 stringResource(R.string.alarm_empty),
@@ -244,9 +392,28 @@ private fun AlarmPanel(
         } else {
             Spacer(Modifier.height(Space.md))
             alarms.forEach { row ->
-                AlarmRow(row, onToggle, onDelete)
+                AlarmRow(row, onToggle) { pendingDeleteId = row.id }
             }
         }
+    }
+
+    if (pending != null) {
+        AlertDialog(
+            onDismissRequest = { pendingDeleteId = null },
+            title = { Text(stringResource(R.string.alarm_delete_confirm_title)) },
+            text = { Text(stringResource(R.string.alarm_delete_confirm_msg, pending.symbol)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    onDelete(pending.id)
+                    pendingDeleteId = null
+                }) { Text(stringResource(R.string.alarm_delete), color = scheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDeleteId = null }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
     }
 }
 
@@ -254,19 +421,19 @@ private fun AlarmPanel(
 private fun AlarmRow(
     row: AlarmEntity,
     onToggle: (Long, Boolean) -> Unit,
-    onDelete: (Long) -> Unit,
+    onDeleteRequest: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
     val spec = row.toSpec()
-    val kind = when (spec?.kind) {
-        AlarmKind.PRICE -> "fiyat"
-        AlarmKind.SCORE -> "|skor|"
-        AlarmKind.FUNDING -> "|fund|"
+    val kindLabel = when (spec?.kind) {
+        AlarmKind.PRICE -> stringResource(R.string.alarm_kind_price)
+        AlarmKind.SCORE -> stringResource(R.string.alarm_kind_score)
+        AlarmKind.FUNDING -> stringResource(R.string.alarm_kind_funding)
         null -> row.kind
     }
-    val op = if (spec?.op == AlarmOp.LTE) "≤" else "≥"
+    val opLabel = if (spec?.op == AlarmOp.LTE) "≤" else "≥"
     Row(
-        Modifier.fillMaxWidth().padding(vertical = 6.dp),
+        Modifier.fillMaxWidth().padding(vertical = Space.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
@@ -276,35 +443,19 @@ private fun AlarmRow(
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
             )
-            Text("$kind $op ${row.threshold}", color = scheme.onSurfaceVariant, fontSize = 12.sp)
+            Text(
+                "$kindLabel $opLabel ${PrefsFormat.fmt("%.4g", row.threshold)}",
+                color = scheme.onSurfaceVariant,
+                fontSize = 12.sp,
+            )
         }
         Switch(checked = row.enabled, onCheckedChange = { onToggle(row.id, it) })
-        Text(
-            stringResource(R.string.alarm_delete),
-            color = scheme.error,
-            fontSize = 12.sp,
-            modifier = Modifier
-                .padding(start = Space.sm)
-                .clickable { onDelete(row.id) }
-                .padding(Space.xs),
-        )
+        IconButton(onClick = onDeleteRequest) {
+            Icon(
+                Icons.Filled.Delete,
+                contentDescription = stringResource(R.string.alarm_delete),
+                tint = scheme.error,
+            )
+        }
     }
-}
-
-@Composable
-private fun KindChip(label: String, on: Boolean, click: () -> Unit) {
-    val scheme = MaterialTheme.colorScheme
-    Text(
-        label,
-        color = if (on) scheme.onPrimary else scheme.onSurface,
-        fontSize = 12.sp,
-        fontWeight = FontWeight.Bold,
-        modifier = Modifier
-            .padding(end = 6.dp)
-            .heightIn(min = 40.dp)
-            .clip(RoundedCornerShape(Radii.sm))
-            .background(if (on) scheme.primary else scheme.surfaceVariant)
-            .clickable(onClick = click)
-            .padding(horizontal = Space.sm, vertical = Space.sm),
-    )
 }

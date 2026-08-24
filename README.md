@@ -22,11 +22,11 @@ Seans (Asia/London/NY UTC) + haftalık/aylık open. Funding BN/BY/OKX yan yana, 
 
 ## Alarm
 
-Ayarlar’da CRUD. Sembol sen yazarsın (hardcode yok). Tip: fiyat / |skor| / |funding|. ≥ veya ≤. Dedup 10dk / alarm. AlertService + canlı rapor. Widget’a dokunulmaz.
+Ayarlar’da CRUD. Sembol sen yazarsın (hardcode yok). Tip: fiyat / |skor| / |funding|. ≥ veya ≤. Dedup 10dk / alarm. AlertService + canlı rapor. Widget’a dokunulmaz. v1.26: izin sonucu beklenir, slider bitince yazılır, log-para, silme onayı.
 
 ## Grafik
 
-v1.25: DOM spread/baskı/kümülatif. Radar saveable. Liq dikey. ViewModel helm. Grafik hoist.
+v1.26: Ayarlar izin/slider/locale. DOM spread. Radar saveable. Liq dikey. ViewModel helm.
 
 HTML envanter: [`CHART-HTML.md`](CHART-HTML.md).
 

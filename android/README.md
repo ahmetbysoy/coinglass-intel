@@ -1,1 +1,1 @@
-v1.25: DOM spread/baskı/kümülatif + spoof pulse.
+v1.26: Settings — perm callback, log sliders, saveable form, delete confirm.
