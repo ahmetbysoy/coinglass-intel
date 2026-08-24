@@ -199,7 +199,7 @@ fun CandleChart(
                                     },
                                     onFling = { vx, slot ->
                                         flingJob?.cancel()
-                                        flingJob = scope.launch { state.fling(vx, slot, density) }
+                                        flingJob = scope.launch { state.fling(vx, slot) }
                                     },
                                     onTap = { x ->
                                         val geo = geoOf(state, priceGutterPx, heatGutterPx, timeHpx)
@@ -776,11 +776,13 @@ private fun ChartHeader(
             Spacer(Modifier.weight(1f))
             Text("$shownCount/$totalCount", color = Color.White.copy(alpha = 0.55f), fontSize = 10.sp, fontFamily = FontFamily.Monospace)
         }
-        FlowRow(
-            modifier = Modifier.padding(top = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Overlay.entries.forEach { o ->
+        Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Overlay.entries.take(3).forEach { o ->
+                OverlayChip(o.name, state.has(o), onDesc, offDesc) { state.toggle(o) }
+            }
+        }
+        Row(Modifier.padding(top = 2.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Overlay.entries.drop(3).forEach { o ->
                 OverlayChip(o.name, state.has(o), onDesc, offDesc) { state.toggle(o) }
             }
         }

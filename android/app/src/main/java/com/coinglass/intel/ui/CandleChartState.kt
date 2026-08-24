@@ -1,7 +1,7 @@
 package com.coinglass.intel.ui
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.splineBasedDecay
+import androidx.compose.animation.core.exponentialDecay
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -104,12 +104,11 @@ class CandleChartState(
 
     fun setCrosshair(openTime: Double?) { crosshairTime = openTime }
 
-    suspend fun fling(velocityPxPerSec: Float, slotPx: Float, density: Density) {
+    suspend fun fling(velocityPxPerSec: Float, slotPx: Float) {
         if (!ChartGesture.shouldFling(velocityPxPerSec) || slotPx <= 0f) return
         var last = 0f
         flingAnim.snapTo(0f)
-        val decay = splineBasedDecay<Float>(density)
-        flingAnim.animateDecay(velocityPxPerSec, decay) {
+        flingAnim.animateDecay(velocityPxPerSec, exponentialDecay()) {
             val delta = value - last
             last = value
             val atLive = offsetFromEnd == 0 && panRemain <= 0f && delta < 0f
