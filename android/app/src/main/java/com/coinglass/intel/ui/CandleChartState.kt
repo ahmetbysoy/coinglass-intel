@@ -137,7 +137,13 @@ class CandleChartState(
 }
 
 @Composable
-fun rememberCandleChartState(initialVisible: Int = ChartSeries.VISIBLE_BARS): CandleChartState =
+fun rememberCandleChartState(
+    initialVisible: Int = ChartSeries.VISIBLE_BARS,
+    initialOverlays: Set<Overlay> = DEFAULT_OVERLAYS,
+): CandleChartState =
     rememberSaveable(saver = CandleChartState.Saver) {
-        CandleChartState(visible = initialVisible.coerceIn(ChartViewport.MIN_BARS, ChartViewport.MAX_BARS))
+        CandleChartState(
+            visible = initialVisible.coerceIn(ChartViewport.MIN_BARS, ChartViewport.MAX_BARS),
+            overlays = initialOverlays,
+        )
     }

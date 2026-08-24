@@ -86,6 +86,7 @@ import com.coinglass.intel.domain.Divergence
 import com.coinglass.intel.domain.EmaCache
 import com.coinglass.intel.domain.Overlay
 import com.coinglass.intel.domain.Structure
+import com.coinglass.intel.domain.pack
 import com.coinglass.intel.domain.fmtPrice
 import com.coinglass.intel.domain.model.Candle
 import com.coinglass.intel.ui.theme.Bear
