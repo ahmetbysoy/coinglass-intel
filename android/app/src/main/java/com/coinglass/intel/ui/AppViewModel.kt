@@ -197,6 +197,18 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         tab.value = i
     }
 
+    fun addAlarm(raw: String, kind: com.coinglass.intel.domain.AlarmKind, op: com.coinglass.intel.domain.AlarmOp, threshold: Double, label: String = "") {
+        viewModelScope.launch { alarmsBook.add(raw, kind, op, threshold, label) }
+    }
+
+    fun setAlarmEnabled(id: Long, on: Boolean) {
+        viewModelScope.launch { alarmsBook.setEnabled(id, on) }
+    }
+
+    fun deleteAlarm(id: Long) {
+        viewModelScope.launch { alarmsBook.delete(id) }
+    }
+
     fun cycleWatch(delta: Int) {
         val list = watchlist.value.map { it.symbol }
         if (list.isEmpty()) return
