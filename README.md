@@ -18,7 +18,9 @@ A/B + enterOk iken **KAĞIT AÇ**. SL/TP veya 15dk timeout. Emir gitmez.
 
 ## Grafik
 
-Tam ekran viewport. Pinch odak + pan + fling. Sağ kenar fiyat zoom. Canlıda 5 bar pad. Zoom DataStore’da. Tooltip parmağın yanında. HTML envanter: [`CHART-HTML.md`](CHART-HTML.md).
+Tek parmak izleyici (1.16). Sola/sağa sürükle = geçmiş; bırakınca atalet. İki parmak pinch odak noktasına zoom. Sağ fiyat gutter dikey = y-scale. Çift dokun = sıfırla. Uzun bas = crosshair.
+
+Mumlar fiyat etiketinin altında değil: sabit fiyat gutter + heat gutter. Izgara yuvarlak sayılar (1/2/2.5/5). Canlıda 5 bar pad. Zoom `chartVisibleBars` DataStore. HTML envanter: [`CHART-HTML.md`](CHART-HTML.md).
 
 ## Likidasyon haritası
 

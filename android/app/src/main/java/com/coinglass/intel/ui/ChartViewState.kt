@@ -21,7 +21,9 @@ class ChartViewState(
     var visible by mutableIntStateOf(visible)
     var offsetFromEnd by mutableIntStateOf(offsetFromEnd)
     var flags by mutableIntStateOf(flags)
-    var priceZoom by mutableFloatStateOf(priceZoom.coerceIn(0.4f, 3f))
+    var priceZoom by mutableFloatStateOf(priceZoom.coerceIn(PRICE_MIN, PRICE_MAX))
+    var panRemain by mutableFloatStateOf(0f)
+    var zoomRemain by mutableFloatStateOf(1f)
 
     val following: Boolean get() = offsetFromEnd == 0
 
@@ -29,13 +31,22 @@ class ChartViewState(
     fun has(f: Int): Boolean = flags and f != 0
 
     fun zoom(factor: Float, focus01: Float, total: Int) {
-        val (v, o) = ChartViewport.zoom(visible, factor, focus01, offsetFromEnd, total)
-        visible = v
-        offsetFromEnd = o
+        val z = ChartViewport.zoomAccum(visible, zoomRemain, factor, focus01, offsetFromEnd, total)
+        visible = z.visible
+        offsetFromEnd = z.offset
+        zoomRemain = z.remain
     }
 
     fun pan(deltaBars: Int, total: Int) {
         offsetFromEnd = ChartViewport.pan(offsetFromEnd, deltaBars, visible, total)
+        if (offsetFromEnd == 0 && deltaBars < 0) panRemain = 0f
+    }
+
+    fun panByPixels(dx: Float, slot: Float, total: Int) {
+        val acc = ChartViewport.pixelsToBars(dx, slot, panRemain)
+        panRemain = acc.remain
+        if (acc.bars != 0) pan(acc.bars, total)
+        if (offsetFromEnd == 0 && panRemain < 0f) panRemain = 0f
     }
 
     fun onGrow(prevTotal: Int, newTotal: Int) {
@@ -45,12 +56,21 @@ class ChartViewState(
     fun reset() {
         visible = ChartSeries.VISIBLE_BARS
         offsetFromEnd = 0
+        priceZoom = 1f
+        panRemain = 0f
+        zoomRemain = 1f
     }
 
-    fun jumpToLive() { offsetFromEnd = 0 }
+    fun jumpToLive() {
+        offsetFromEnd = 0
+        panRemain = 0f
+    }
+
+    fun clearZoomAcc() { zoomRemain = 1f }
 
     fun nudgePriceZoom(dy01: Float) {
-        priceZoom = (priceZoom * (1f + dy01 * 2.2f)).coerceIn(0.4f, 3f)
+        if (!dy01.isFinite()) return
+        priceZoom = (priceZoom * (1f + dy01 * 2.2f)).coerceIn(PRICE_MIN, PRICE_MAX)
     }
 
     companion object {
@@ -60,6 +80,8 @@ class ChartViewState(
         const val FLAG_HEAT = 8
         const val FLAG_EMA = 16
         const val FLAG_VOL = 32
+        const val PRICE_MIN = 0.4f
+        const val PRICE_MAX = 3f
 
         val Saver = Saver<ChartViewState, List<Int>>(
             save = { listOf(it.visible, it.offsetFromEnd, it.flags) },
