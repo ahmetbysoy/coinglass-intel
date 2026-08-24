@@ -51,4 +51,16 @@
     <string name="pulse_funding_ex">FUNDING BN / BY / OKX</string>
     <string name="pulse_liq">LİKİDASYON</string>
     <string name="pulse_liq_none">akış yok</string>
+    <string name="pulse_title">PİYASA NABZI</string>
+    <string name="pulse_live">Canlı veri akıyor</string>
+    <string name="pulse_offline">Veri bekleniyor</string>
+    <string name="session_asia">Asya</string>
+    <string name="session_london">Londra</string>
+    <string name="session_ny">New York</string>
+    <string name="session_open">açık</string>
+    <string name="session_closed">kapalı</string>
+    <string name="pulse_weekly_open">Haftalık açılış</string>
+    <string name="pulse_monthly_open">Aylık açılış</string>
+    <string name="pulse_eta">%1$d sa %2$d dk</string>
+    <string name="pulse_funding_spread">Borsalar arası spread: %1$s puan</string>
 </resources>

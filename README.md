@@ -18,7 +18,7 @@ A/B + enterOk iken **KAĞIT AÇ**. SL/TP veya 15dk timeout. Emir gitmez.
 
 ## Nabız
 
-Seans (Asia/London/NY UTC) + haftalık/aylık open. Funding BN/BY/OKX yan yana, 30dk kala kırmızı. İsabet’te izole liq lev10 (emir yok). v1.25 DOM: spread, alıcı/satıcı baskı, 8/16 derinlik, kümülatif, spoof nabız.
+Seans (Asia/London/NY UTC) + haftalık/aylık open. Funding BN/BY/OKX yan yana, 30dk kala kırmızı. v1.27: canlı nokta, seans chip, eta “sa/dk” + progress, funding spread, L/S çubuğu. İsabet’te izole liq lev10 (emir yok). v1.25 DOM.
 
 ## Alarm
 
@@ -26,7 +26,7 @@ Ayarlar’da CRUD. Sembol sen yazarsın (hardcode yok). Tip: fiyat / |skor| / |f
 
 ## Grafik
 
-v1.26: Ayarlar izin/slider/locale. DOM spread. Radar saveable. Liq dikey. ViewModel helm.
+v1.27: Nabız — canlı nokta, seans chip, funding progress/spread. Ayarlar/DOM/Radar.
 
 HTML envanter: [`CHART-HTML.md`](CHART-HTML.md).
 
