@@ -2,6 +2,7 @@ package com.coinglass.intel.domain
 
 import kotlin.math.abs
 import kotlin.math.max
+import kotlin.math.sqrt
 
 data class LiqPrint(
     val price: Double,
@@ -30,6 +31,58 @@ object LiqHeat {
         val hi: Double = 0.0,
     ) {
         val empty: Boolean get() = bins.all { it.total <= 0 }
+    }
+
+    data class Cluster(
+        val index: Int,
+        val price: Double,
+        val usd: Double,
+        val longDominant: Boolean,
+    )
+
+    data class Stats(
+        val pullUp: Double = 0.0,
+        val pullDown: Double = 0.0,
+        val clusters: List<Cluster> = emptyList(),
+    ) {
+        /** 0..1 — 0.5 nötr, >0.5 yukarı (short-liq / above-mark) çekimi. */
+        val upBias: Float
+            get() {
+                val s = pullUp + pullDown
+                return if (s <= 0.0) 0.5f else (pullUp / s).toFloat()
+            }
+    }
+
+    /** USD / sqrt(distance) — closer fat bins pull harder. */
+    fun stats(grid: Grid, mark: Double, top: Int = 3): Stats {
+        val n = grid.bins.size
+        if (n == 0 || grid.hi <= grid.lo) return Stats()
+        val step = (grid.hi - grid.lo) / n
+        var up = 0.0
+        var down = 0.0
+        val all = ArrayList<Cluster>(n)
+        grid.bins.forEachIndexed { i, b ->
+            val tot = b.total
+            if (tot <= 0.0) return@forEachIndexed
+            val price = b.mid
+            val pull = tot / sqrt(abs(price - mark).coerceAtLeast(step))
+            if (price > mark) up += pull else down += pull
+            all += Cluster(i, price, tot, b.longUsd >= b.shortUsd)
+        }
+        return Stats(up, down, all.sortedByDescending { it.usd }.take(top.coerceAtLeast(0)))
+    }
+
+    /** Canvas y=0 is hi (last bin). */
+    fun binIndexAt(y: Float, height: Float, n: Int): Int {
+        if (n <= 0 || height <= 0f || !y.isFinite()) return -1
+        val row = (y / (height / n)).toInt().coerceIn(0, n - 1)
+        return n - 1 - row
+    }
+
+    /** 0..1 in range. <0 below lo, >1 above hi. NaN if collapsed. */
+    fun markT(mark: Double, lo: Double, hi: Double): Double {
+        if (hi <= lo || !mark.isFinite()) return Double.NaN
+        return (mark - lo) / (hi - lo)
     }
 
     fun build(

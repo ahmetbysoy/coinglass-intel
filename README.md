@@ -26,13 +26,13 @@ Ayarlar’da CRUD. Sembol sen yazarsın (hardcode yok). Tip: fiyat / |skor| / |f
 
 ## Grafik
 
-v1.22: ViewModel helm — stale ticker combine’da, alarm quote = snaps+live, watch toggle `@Transaction`, FGS Android 12+ guard, SavedState tab, UiEvent snackbar. Grafik: ChartScreen hoist + ChartTf + SMC Default. Overlay persist, magnet OHLC, KARAR satırı.
+v1.23: Liq haritası dikey eksen + kademe inceleme + ısı + mıknatıs. ViewModel helm (stale/alarm/FGS/SavedState). Grafik hoist + ChartTf + SMC Default.
 
 HTML envanter: [`CHART-HTML.md`](CHART-HTML.md).
 
 ## Likidasyon haritası
 
-Canlı `forceOrder` + CoinGlass liq, fiyat kademesine (24 bin) yığılır. Sol long, sağ short. DOM değil.
+Canlı `forceOrder` + CoinGlass liq, fiyat kademesine (24 bin) yığılır. Sol long, sağ short. DOM değil. v1.23: dikey fiyat ekseni, tap/sürükle kademe, ısı gradyanı, mıknatıs top-3, mark aralık-dışı oku.
 
 ## CI
 

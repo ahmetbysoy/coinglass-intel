@@ -1,1 +1,1 @@
-v1.22: ViewModel helm — stale/alarm/toggle/FGS/SavedState/UiEvent.
+v1.23: Liq heatmap — dikey eksen, tap/drag, ısı, mıknatıs.
