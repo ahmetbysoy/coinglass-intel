@@ -29,8 +29,8 @@ Saklanacak farklılaşma: spoof≥50 duvarı SL yapmaz, `netRR` fee+funding dü�
 | Var | Yok / kırık |
 |---|---|
 | Compose 6 tab, Room watchlist/snap/outcome/dedup/discovery/paper | Crosshair / tap-fiyat |
-| Dual Binance WS + CG liq + Bybit/OKX BBO + SMC overlay + crosshair | Sembol bazlı çoklu alarm |
-| Verdict A–D, GİRME, netRR, SMC +8, pozisyon boyutu | Sembol bazlı çoklu alarm |
+| Dual Binance WS + CG liq + Bybit/OKX BBO + SMC overlay + crosshair | Haftalık/aylık open + margin sim |
+| Verdict A–D, GİRME, netRR, SMC +8, pozisyon boyutu, alarm CRUD | — |
 | Liq heatmap (24 bin), DOM, VAL/VAH | Haftalık/aylık open + margin sim |
 | Radar = KEŞİF (ticker) + WATCHLIST | — |
 | Python/Kotlin eğriler ayrı test | İki motoru birbirine karşı CI diff yok |
@@ -144,9 +144,13 @@ Test: `DiscoveryPickTest` + `ticker24h.json` → N/K seçimi; watchlist boşken 
 
 ### FAZ 5 — Alarm
 
+**yapıldı** (v1.18) `AlarmEngine` + Room `alarm` / `alarm_fire` v8.
+
 - CRUD Ayarlar’da. Sembol normalize. Tip: fiyat / \|skor\| / funding abs.
-- `AlarmEngine.check(snaps + live)` AlertService döngüsünde. Dedup 10dk/sembol/alarmId.
+- `AlarmEngine.check(snaps + live)` AlertService döngüsünde + canlı rapor. Dedup 10dk/alarmId.
 - Widget’a dokunulmaz.
+
+Test: `AlarmEngineTest` — abs skor/funding, 10dk dedup, normalize, hardcode yok.
 
 ### FAZ 6 — Nabız
 

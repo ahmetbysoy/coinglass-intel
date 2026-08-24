@@ -25,4 +25,5 @@ data class ScoreSnapEntity(
     val spoof: Int = 0,
     val netRr: Double = 0.0,
     val vol24: Double = 0.0,
+    val funding: Double = 0.0,
 )

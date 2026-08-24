@@ -40,6 +40,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val discovery = MarketDiscovery(intel.restClient, db)
     private val tracker = OutcomeTracker(db)
     private val papers = PaperBook(db)
+    private val alarmsBook = com.coinglass.intel.data.alarm.AlarmBook(db)
 
     val settings: StateFlow<UserSettings> = settingsStore.flow.stateIn(
         viewModelScope, SharingStarted.Eagerly, UserSettings(),
@@ -58,6 +59,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope, SharingStarted.Eagerly, emptyList(),
     )
     val paperTrades: StateFlow<List<PaperTradeEntity>> = db.paper().observe().stateIn(
+        viewModelScope, SharingStarted.Eagerly, emptyList(),
+    )
+    val alarms: StateFlow<List<com.coinglass.intel.data.db.AlarmEntity>> = alarmsBook.observe().stateIn(
         viewModelScope, SharingStarted.Eagerly, emptyList(),
     )
     val compare = MutableStateFlow<List<String>>(emptyList())
@@ -106,6 +110,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 tracker.settle(r.symbol, r.price)
                 papers.settle(r.symbol, r.price)
                 if (settings.value.autoPaper) papers.tryOpen(r, "auto")
+                if (settings.value.notificationsEnabled && r.symbol.isNotBlank()) {
+                    val nowMs = System.currentTimeMillis()
+                    val liveQ = com.coinglass.intel.domain.AlarmQuote(r.symbol, r.price, r.totalScore, r.funding)
+                    val hits = alarmsBook.evaluate(emptyList(), liveQ, nowMs)
+                    alarmsBook.notifyHits(getApplication(), hits, nowMs)
+                }
                 hit.value = tracker.hitRate(r.symbol)
                 repo.setBoost(tracker.alignedBoost())
             }

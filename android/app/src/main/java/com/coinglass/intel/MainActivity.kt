@@ -109,11 +109,18 @@ class MainActivity : ComponentActivity() {
                             )
                             3 -> PerformanceScreen(outcomes, settings.equityUsd, settings.riskPct, live.report, papers)
                             4 -> PulseScreen(vm)
-                            5 -> SettingsScreen(
-                                s = settings,
-                                onChange = { vm.updateSettings(it) },
-                                onToggleService = { vm.toggleService(it) },
-                            )
+                            5 -> {
+                                val alarmRows by vm.alarms.collectAsStateWithLifecycle()
+                                SettingsScreen(
+                                    s = settings,
+                                    alarms = alarmRows,
+                                    onChange = { vm.updateSettings(it) },
+                                    onToggleService = { vm.toggleService(it) },
+                                    onAddAlarm = { raw, kind, op, th, label -> vm.addAlarm(raw, kind, op, th, label) },
+                                    onToggleAlarm = { id, on -> vm.setAlarmEnabled(id, on) },
+                                    onDeleteAlarm = { vm.deleteAlarm(it) },
+                                )
+                            }
                             else -> IntelScreen(vm)
                         }
                     }

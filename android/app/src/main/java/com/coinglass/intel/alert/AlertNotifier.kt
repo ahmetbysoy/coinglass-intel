@@ -108,4 +108,27 @@ object AlertNotifier {
             .build()
         nm.notify(ID_ALERT_BASE + (symbol.hashCode() and 0xffff), n)
     }
+
+    fun alarmHit(ctx: Context, hit: com.coinglass.intel.domain.AlarmHit) {
+        ensureChannels(ctx)
+        val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val sym = hit.alarm.symbol
+        val open = PendingIntent.getActivity(
+            ctx, (ID_ALARM_BASE + hit.alarm.id).toInt(),
+            Intent(ctx, MainActivity::class.java).putExtra("symbol", sym),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val n = NotificationCompat.Builder(ctx, CH_ALERT)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle("ALARM  $sym")
+            .setContentText(com.coinglass.intel.domain.AlarmEngine.line(hit))
+            .setContentIntent(open)
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setDefaults(NotificationCompat.DEFAULT_SOUND or NotificationCompat.DEFAULT_VIBRATE)
+            .build()
+        nm.notify(ID_ALARM_BASE + (hit.alarm.id.toInt() and 0xffff), n)
+    }
+
+    private const val ID_ALARM_BASE = 5000
 }

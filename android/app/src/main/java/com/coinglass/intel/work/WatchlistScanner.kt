@@ -40,12 +40,20 @@ class WatchlistScanner(
                     spoof = report.spoof,
                     netRr = report.netRr,
                     vol24 = report.vol24,
+                    funding = report.funding,
                 )
                 db.snap().upsert(row)
                 out += row
             }
         }
         return out.sortedByDescending { kotlin.math.abs(it.score) }
+    }
+
+    /** Score a symbol without writing watchlist. Used for alarm-only pairs. */
+    suspend fun quote(symbol: String): com.coinglass.intel.domain.AlarmQuote? {
+        val feed = runCatching { rest.fetch(symbol) }.getOrNull() ?: return null
+        val report = MarketScorer.score(feed)
+        return com.coinglass.intel.domain.AlarmQuote(symbol, report.price, report.totalScore, report.funding)
     }
 
     private fun encode(cs: List<Candle>): String = json.encodeToString(cs.map {

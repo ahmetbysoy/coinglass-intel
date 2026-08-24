@@ -16,6 +16,10 @@ A/B + enterOk iken **KAĞIT AÇ**. SL/TP veya 15dk timeout. Emir gitmez.
 
 İki liste: **KEŞİF** + **WATCHLIST**. Açık kağıt satırları üstte.
 
+## Alarm
+
+Ayarlar’da CRUD. Sembol sen yazarsın (hardcode yok). Tip: fiyat / |skor| / |funding|. ≥ veya ≤. Dedup 10dk / alarm. AlertService + canlı rapor. Widget’a dokunulmaz.
+
 ## Grafik
 
 v1.17: `ChartData` / `ChartLevels` / `ChartSignals` imzası. `CandleChartState` (bitmask yok, `Set<Overlay>`). Crosshair **openTime**. Fling `Animatable` + spline decay. Incremental `EmaCache`. Axis label cache. `snapshotFlow` debounce. Loading/Error. FilterChip + ⟲ Oto. Jestler: tek parmak pan, pinch, sağ gutter y-scale, çift dokun sıfırla.

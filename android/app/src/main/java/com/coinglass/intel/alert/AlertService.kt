@@ -35,13 +35,29 @@ class AlertService : Service() {
         val db = AppDb.get(this)
         val settings = SettingsStore(this)
         val coord = ScanCoordinator(app.restClient, db)
+        val book = com.coinglass.intel.data.alarm.AlarmBook(db)
+        val scanner = com.coinglass.intel.work.WatchlistScanner(app.restClient, db)
         var turn = 0
         while (scope.isActive) {
             val cfg = settings.flow.first()
             val watch = db.watch().all()
             startForeground(AlertNotifier.ID_FG, AlertNotifier.foreground(this, watch.size))
-            if (cfg.notificationsEnabled && watch.isNotEmpty()) {
+            val snaps = if (cfg.notificationsEnabled && watch.isNotEmpty()) {
                 coord.scan(notify = true, ctx = this, minAbs = cfg.scoreAlertAbs)
+            } else {
+                emptyList()
+            }
+            if (cfg.notificationsEnabled) {
+                val quotes = snaps.map { com.coinglass.intel.data.alarm.AlarmBook.quoteOf(it) }.toMutableList()
+                val have = quotes.map { it.symbol }.toSet()
+                val extra = db.alarm().enabled().map { it.symbol }.distinct().filter { it !in have }
+                for ((i, sym) in extra.withIndex()) {
+                    if (i > 0) delay(200)
+                    scanner.quote(sym)?.let { quotes += it }
+                }
+                val now = System.currentTimeMillis()
+                val hits = book.evaluate(quotes, live = null, now)
+                book.notifyHits(this, hits, now)
             }
             if (turn % 5 == 0) {
                 coord.discover(

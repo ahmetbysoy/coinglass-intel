@@ -1,1 +1,1 @@
-v1.17: ChartData/Levels/Signals, CandleChartState, timestamp crosshair, Animatable fling, EmaCache, a11y chips.
+v1.18: Faz 5 Alarm — CRUD Ayarlar, AlarmEngine, Room v8, 10dk dedup.
