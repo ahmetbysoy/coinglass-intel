@@ -54,6 +54,6 @@ class PulseMathTest {
     fun spreadNeedsTwoRates() {
         assertNull(PulseMath.spreadPct(emptyList()))
         assertNull(PulseMath.spreadPct(listOf(0.0001)))
-        assertEquals(0.02, PulseMath.spreadPct(listOf(0.0001, 0.0003)), 1e-12)
+        assertEquals(0.02, PulseMath.spreadPct(listOf(0.0001, 0.0003))!!, 1e-12)
     }
 }

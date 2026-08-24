@@ -136,7 +136,7 @@ fun PulseScreen(vm: AppViewModel) {
                 )
                 Spacer(Modifier.height(Space.xs))
                 LinearProgressIndicator(
-                    progress = PulseMath.fundingProgress(remaining),
+                    progress = { PulseMath.fundingProgress(remaining) },
                     modifier = Modifier.fillMaxWidth(),
                     color = if (fundHot) Warn else scheme.primary,
                 )
