@@ -1,1 +1,1 @@
-v1.23: Liq heatmap — dikey eksen, tap/drag, ısı, mıknatıs.
+v1.24: Radar saveable + FilterChip + arama + keşif risk=null.

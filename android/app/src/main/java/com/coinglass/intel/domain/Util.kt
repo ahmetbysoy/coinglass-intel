@@ -10,6 +10,7 @@ import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import java.util.Locale
 import kotlin.math.abs
 
 val JsonX = Json {
@@ -74,21 +75,21 @@ fun fmtPrice(p: Double?): String {
     val v = p ?: 0.0
     if (v == 0.0) return "$0"
     return when {
-        v >= 1000 -> "$" + "%,.2f".format(v)
-        v >= 1 -> "$" + "%.4f".format(v)
-        v >= 0.01 -> "$" + "%.6f".format(v)
-        v >= 0.0001 -> "$" + "%.8f".format(v)
-        else -> "$" + "%.10f".format(v)
+        v >= 1000 -> "$" + "%,.2f".format(Locale.US, v)
+        v >= 1 -> "$" + "%.4f".format(Locale.US, v)
+        v >= 0.01 -> "$" + "%.6f".format(Locale.US, v)
+        v >= 0.0001 -> "$" + "%.8f".format(Locale.US, v)
+        else -> "$" + "%.10f".format(Locale.US, v)
     }
 }
 
 fun fmtUsd(v: Double): String {
     val a = abs(v)
     return when {
-        a >= 1_000_000_000 -> "$" + "%.2fB".format(v / 1_000_000_000)
-        a >= 1_000_000 -> "$" + "%.2fM".format(v / 1_000_000)
-        a >= 1_000 -> "$" + "%.1fK".format(v / 1_000)
-        else -> "$" + "%.0f".format(v)
+        a >= 1_000_000_000 -> "$" + "%.2fB".format(Locale.US, v / 1_000_000_000)
+        a >= 1_000_000 -> "$" + "%.2fM".format(Locale.US, v / 1_000_000)
+        a >= 1_000 -> "$" + "%.1fK".format(Locale.US, v / 1_000)
+        else -> "$" + "%.0f".format(Locale.US, v)
     }
 }
 

@@ -14,7 +14,7 @@ A/B + enterOk iken **KAĞIT AÇ**. SL/TP veya 15dk timeout. Emir gitmez.
 
 ## Radar
 
-İki liste: **KEŞİF** + **WATCHLIST**. Açık kağıt satırları üstte.
+İki liste: **KEŞİF** + **WATCHLIST**. Açık kağıt satırları üstte. v1.24: arama, FilterChip, yönlü sıra, keşif risk=null (filtre yalan söylemez), Locale.US, adaptif grid, VS kazanan.
 
 ## Nabız
 
@@ -26,7 +26,7 @@ Ayarlar’da CRUD. Sembol sen yazarsın (hardcode yok). Tip: fiyat / |skor| / |f
 
 ## Grafik
 
-v1.23: Liq haritası dikey eksen + kademe inceleme + ısı + mıknatıs. ViewModel helm (stale/alarm/FGS/SavedState). Grafik hoist + ChartTf + SMC Default.
+v1.24: Radar — arama, FilterChip, yönlü sıra, keşif risk yok sayılmaz. Liq dikey eksen. ViewModel helm. Grafik hoist.
 
 HTML envanter: [`CHART-HTML.md`](CHART-HTML.md).
 
