@@ -17,8 +17,11 @@ class SmcTest {
 
     @Test
     fun emptyAndShortYieldNothing() {
-        assertTrue(Smc.analyze(emptyList()).fvgs.isEmpty())
+        assertEquals(Smc.EMPTY, Smc.analyze(emptyList()))
         assertTrue(Smc.analyze(listOf(bar(1.0, 1.0, 1.1, 0.9, 1.0))).obs.isEmpty())
+        assertTrue(Smc.EMPTY.obs.isEmpty())
+        assertTrue(Smc.EMPTY.fvgs.isEmpty())
+        assertTrue(Smc.EMPTY.sweeps.isEmpty())
     }
 
     @Test

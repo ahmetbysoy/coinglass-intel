@@ -2,11 +2,27 @@ package com.coinglass.intel.domain
 
 import com.coinglass.intel.domain.model.Candle
 
+/** Chart TFs only. Typo does not silently become 5m at the repo gate. */
+enum class ChartTf(val label: String) {
+    M1("1m"), M3("3m"), M5("5m"), M15("15m");
+
+    fun next(): ChartTf = entries[(ordinal + 1) % entries.size]
+
+    companion object {
+        val labels: List<String> = entries.map { it.label }
+
+        fun parse(raw: String?): ChartTf? =
+            if (raw.isNullOrBlank()) null else entries.firstOrNull { it.label == raw }
+
+        fun from(raw: String?): ChartTf = parse(raw) ?: M5
+    }
+}
+
 /** REST seed + live WS merge. Chart paints a window; store keeps 600. */
 object ChartSeries {
     const val VISIBLE_BARS = 90
     const val STORE_CAP = 600
-    val TFS = listOf("1m", "3m", "5m", "15m")
+    val TFS: List<String> = ChartTf.labels
 
     fun merge(rest: List<Candle>, live: Collection<Candle>): List<Candle> {
         if (rest.isEmpty() && live.isEmpty()) return emptyList()

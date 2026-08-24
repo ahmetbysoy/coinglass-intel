@@ -23,8 +23,7 @@ Tek parmak yatay = pan. İki parmak = pinch. Sağ fiyat gutter dikey = y-scale. 
 
 - Pain Trend / HSI, whale canvas, CVD sol scale
 - 1h / 4h TF
-- Magnet crosshair
-- `kotlinx.collections.immutable` (snapshot `toList()`)
+- `kotlinx.collections.immutable` (snapshot `toList()`; candles1m/3m/5m/15m hâlâ kopyalanır)
 
 ## Test
 

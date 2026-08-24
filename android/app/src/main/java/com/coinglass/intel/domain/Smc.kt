@@ -42,8 +42,10 @@ object Smc {
         }
     }
 
+    val EMPTY = Report()
+
     fun analyze(candles: List<Candle>): Report {
-        if (candles.size < 3) return Report()
+        if (candles.size < 3) return EMPTY
         val bars = ensureSorted(candles)
         return Report(
             obs = orderBlocks(bars),

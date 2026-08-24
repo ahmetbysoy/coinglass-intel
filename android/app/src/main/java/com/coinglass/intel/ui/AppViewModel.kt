@@ -193,6 +193,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         repo.setChartTf(tf)
     }
 
+    fun onChartVisibleBarsChanged(n: Int) {
+        if (n != settings.value.chartVisibleBars) updateSettings { it.copy(chartVisibleBars = n) }
+    }
+
+    fun onChartOverlaysChanged(packed: Int) {
+        if (packed != settings.value.chartOverlays) updateSettings { it.copy(chartOverlays = packed) }
+    }
+
     fun selectTab(i: Int) {
         tab.value = i
     }

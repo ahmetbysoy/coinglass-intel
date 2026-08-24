@@ -83,6 +83,22 @@ class ChartSeriesTest {
     }
 
     @Test
+    fun chartTfParseRejectsUnknownAndFromFallsBackToM5() {
+        assertEquals(ChartTf.M1, ChartTf.from("1m"))
+        assertEquals(ChartTf.M3, ChartTf.parse("3m"))
+        assertEquals(ChartTf.M15, ChartTf.from("15m"))
+        assertEquals(null, ChartTf.parse("1h"))
+        assertEquals(null, ChartTf.parse(""))
+        assertEquals(null, ChartTf.parse(null))
+        assertEquals(ChartTf.M5, ChartTf.from(null))
+        assertEquals(ChartTf.M5, ChartTf.from("4h"))
+        assertEquals(ChartTf.M3, ChartTf.M1.next())
+        assertEquals(ChartTf.M1, ChartTf.M15.next())
+        assertEquals(listOf("1m", "3m", "5m", "15m"), ChartTf.labels)
+        assertEquals(ChartTf.labels, ChartSeries.TFS)
+    }
+
+    @Test
     fun calibratorMapsMomToMomentumNotVolume() {
         val ens = WeightCalibrator.toEnsemble(mapOf("Mom" to 40.0, "Vol" to 10.0, "OB" to 50.0))
         assertTrue(ens.containsKey("momentum"))

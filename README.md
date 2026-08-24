@@ -26,7 +26,7 @@ Ayarlar’da CRUD. Sembol sen yazarsın (hardcode yok). Tip: fiyat / |skor| / |f
 
 ## Grafik
 
-v1.20: overlay chip DataStore persist. Magnet crosshair (OHLC’ye yapışır). Header’da KARAR satırı. Jestler: tek parmak pan, pinch, sağ gutter y-scale, çift dokun sıfırla.
+v1.21: ChartScreen stateless hoist + ChartTf enum + SMC `Dispatchers.Default`. Overlay persist, magnet OHLC, KARAR satırı header. Jestler: tek parmak pan, pinch, sağ gutter y-scale, çift dokun sıfırla.
 
 HTML envanter: [`CHART-HTML.md`](CHART-HTML.md).
 

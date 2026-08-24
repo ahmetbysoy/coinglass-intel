@@ -1,6 +1,7 @@
 package com.coinglass.intel.domain
 
 import com.coinglass.intel.domain.model.Candle
+import com.coinglass.intel.domain.model.V4Report
 
 enum class Divergence {
     NONE, BULL, BEAR;
@@ -37,7 +38,11 @@ data class ChartLevels(
     val bidWall: Double = 0.0,
     val askWall: Double = 0.0,
     val poc: Double = 0.0,
-)
+) {
+    companion object {
+        val EMPTY = ChartLevels()
+    }
+}
 
 data class ChartSignals(
     val spoofScore: Int = 0,
@@ -49,13 +54,39 @@ data class ChartSignals(
 
     companion object {
         const val SPOOF_THRESHOLD = 50
+        val EMPTY = ChartSignals()
     }
+}
+
+/** Null report → empty levels. Chart skips 0.0 sentinels (entry/sl/tp > 0). */
+fun V4Report?.toChartLevels(): ChartLevels {
+    if (this == null) return ChartLevels.EMPTY
+    return ChartLevels(
+        entry = price,
+        sl = sl,
+        tp = tp,
+        support = support,
+        resistance = resistance,
+        bidWall = bidWall,
+        askWall = askWall,
+        poc = poc,
+    )
+}
+
+fun V4Report?.toChartSignals(): ChartSignals {
+    if (this == null) return ChartSignals.EMPTY
+    return ChartSignals(
+        spoofScore = spoof,
+        divergence = Divergence.from(divergeType),
+        grade = grade,
+        verdict = verdict,
+    )
 }
 
 data class ChartData(
     val candles: List<Candle>,
     val liqHeat: LiqHeat.Grid = LiqHeat.Grid(),
-    val smc: Smc.Report = Smc.Report(),
+    val smc: Smc.Report = Smc.EMPTY,
 )
 
 sealed interface ChartContent {

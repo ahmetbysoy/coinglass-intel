@@ -6,6 +6,7 @@ import com.coinglass.intel.data.ws.CoinGlassLiqWs
 import com.coinglass.intel.data.ws.CrossBookWs
 import com.coinglass.intel.domain.Analyzers
 import com.coinglass.intel.domain.ChartSeries
+import com.coinglass.intel.domain.ChartTf
 import com.coinglass.intel.domain.LiqHeat
 import com.coinglass.intel.domain.LiqPrint
 import com.coinglass.intel.domain.MarketScorer
@@ -66,7 +67,7 @@ class MarketRepository(
     private val liqPrints = ArrayDeque<LiqPrint>()
     private var watchJob: Job? = null
     private var symbol = ""
-    private var chartTf = "5m"
+    private var chartTf = ChartTf.M5.label
     private var boost: Map<String, Double> = emptyMap()
     private val bookHist = ArrayDeque<BookSnap>()
     private var priceMs = 0L
@@ -110,16 +111,15 @@ class MarketRepository(
     }
 
     fun toggleChartTf() {
-        val order = listOf("1m", "3m", "5m", "15m")
-        chartTf = order[(order.indexOf(chartTf) + 1) % order.size]
+        chartTf = ChartTf.from(chartTf).next().label
         _state.update { it.copy(chartTf = chartTf) }
     }
 
     fun setChartTf(tf: String) {
-        if (tf in listOf("1m", "3m", "5m", "15m")) {
-            chartTf = tf
-            _state.update { it.copy(chartTf = chartTf) }
-        }
+        val parsed = ChartTf.parse(tf) ?: return
+        if (parsed.label == chartTf) return
+        chartTf = parsed.label
+        _state.update { it.copy(chartTf = chartTf) }
     }
 
     fun watch(raw: String) {
@@ -257,12 +257,12 @@ class MarketRepository(
                     close = toFloat(ev.extra["c"]),
                     volume = toFloat(ev.extra["v"]),
                 )
-                val dest = when (interval) {
-                    "1m" -> k1
-                    "3m" -> k3
-                    "5m" -> k5
-                    "15m" -> k15
-                    else -> null
+                val dest = when (ChartTf.parse(interval)) {
+                    ChartTf.M1 -> k1
+                    ChartTf.M3 -> k3
+                    ChartTf.M5 -> k5
+                    ChartTf.M15 -> k15
+                    null -> null
                 }
                 if (dest != null && t > 0) {
                     dest[t] = c
