@@ -11,7 +11,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.unit.Density
 import com.coinglass.intel.domain.ChartGesture
 import com.coinglass.intel.domain.ChartSeries
 import com.coinglass.intel.domain.ChartViewport
