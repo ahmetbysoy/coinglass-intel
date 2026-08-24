@@ -154,7 +154,7 @@ fun LiqHeatmap(
                         }
                         .pointerInput(grid.lo, grid.hi, n) {
                             detectTapGestures { off ->
-                                val idx = LiqHeat.binIndexAt(off.y, size.height, n)
+                                val idx = LiqHeat.binIndexAt(off.y, size.height.toFloat(), n)
                                 val cur = selectedNow
                                 selected = if (idx >= 0 && idx == cur) -1 else idx
                                 if (idx >= 0 && idx != cur) {
