@@ -29,9 +29,9 @@ Saklanacak farklılaşma: spoof≥50 duvarı SL yapmaz, `netRR` fee+funding dü�
 | Var | Yok / kırık |
 |---|---|
 | Compose 6 tab, Room watchlist/snap/outcome/dedup/discovery/paper | Crosshair / tap-fiyat |
-| Dual Binance WS + CG liq + Bybit/OKX BBO + SMC overlay + crosshair | Haftalık/aylık open + margin sim |
+| Dual Binance WS + CG liq + Bybit/OKX BBO + SMC overlay + crosshair | — |
 | Verdict A–D, GİRME, netRR, SMC +8, pozisyon boyutu, alarm CRUD | — |
-| Liq heatmap (24 bin), DOM, VAL/VAH | Haftalık/aylık open + margin sim |
+| Liq heatmap (24 bin), DOM, VAL/VAH, haftalık/aylık open, izole liq sim | — |
 | Radar = KEŞİF (ticker) + WATCHLIST | — |
 | Python/Kotlin eğriler ayrı test | İki motoru birbirine karşı CI diff yok |
 | Karar tab ince (5 kart) | — |
@@ -154,11 +154,13 @@ Test: `AlarmEngineTest` — abs skor/funding, 10dk dedup, normalize, hardcode yo
 
 ### FAZ 6 — Nabız
 
-- Funding: BN/Bybit/OKX mevcut REST funding listesi yan yana + `nextFundingMs` geri sayım. 30dk kala kırmızı (mevcut banner Karar’da kalır).
-- Session: UTC haftalık open (Pazartesi 00:00 UTC close[0] 1w kline), aylık open (ayın 1’i 1M/1d). Aktif seans: Asia 00–08, London 08–16, NY 13–21 UTC.
-- `MarginSimulator.liqPrice(entry, lev, side, mmr=0.004)` — isolated approx. PositionSizer yanında. Emir yok.
+**yapıldı** (v1.19) `SessionClock` + `MarginSimulator` + Pulse funding tablosu.
 
-Test: long 100 lev 10 → liq &lt; entry; session pencereleri.
+- Funding: BN/Bybit/OKX REST last rate yan yana + `nextFundingMs` geri sayım. 30dk kala kırmızı (banner Karar’da kalır).
+- Session: UTC haftalık open (1w son mum open = Pazartesi 00:00), aylık open (1M, yoksa ayın 1’i 1d). Asia 00–08, London 08–16, NY 13–21 UTC.
+- `MarginSimulator.liqPrice(entry, lev, side, mmr=0.004)` — isolated approx. İsabet’te PositionSizer yanında. Emir yok.
+
+Test: `MarginSimTest` long 100 lev 10 → liq &lt; entry; `SessionClockTest` pencereler + weekly/monthly.
 
 ### FAZ 7 — Grafik dokunuş
 

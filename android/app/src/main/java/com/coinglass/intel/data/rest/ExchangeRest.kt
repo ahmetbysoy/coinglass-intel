@@ -8,7 +8,9 @@ import com.coinglass.intel.domain.asArr
 import com.coinglass.intel.domain.asDouble
 import com.coinglass.intel.domain.asObj
 import com.coinglass.intel.domain.asString
+import com.coinglass.intel.domain.SessionClock
 import com.coinglass.intel.domain.model.Candle
+import com.coinglass.intel.domain.model.ExFunding
 import com.coinglass.intel.domain.model.NamedPrice
 import com.coinglass.intel.domain.model.OrderBook
 import com.coinglass.intel.domain.model.ScoreInput
@@ -104,11 +106,18 @@ class ExchangeRest(private val client: OkHttpClient) {
         val k1h: List<Candle> = emptyList(),
         val btcChg: Double = 0.0,
         val nextFundingMs: Long = 0L,
+        val k1w: List<Candle> = emptyList(),
+        val k1M: List<Candle> = emptyList(),
     )
 
     private fun merge(pair: String, bn: Bundle, by: Bundle, ok: Bundle, btcChg: Double): ScoreInput {
         val nextMs = bn.nextFundingMs
         val mins = if (nextMs > 0) (nextMs - System.currentTimeMillis()) / 60_000.0 else 999.0
+        val fundingEx = listOfNotNull(
+            bn.funding.lastOrNull()?.let { ExFunding("BN", it) },
+            by.funding.firstOrNull()?.let { ExFunding("BY", it) },
+            ok.funding.firstOrNull()?.let { ExFunding("OKX", it) },
+        )
         return ScoreInput(
             symbol = pair,
             prices = bn.prices + by.prices + ok.prices,
@@ -130,6 +139,9 @@ class ExchangeRest(private val client: OkHttpClient) {
             btcChg24 = if (pair == "BTCUSDT") bn.chg24 else btcChg,
             nextFundingMs = nextMs,
             minutesToFunding = mins,
+            fundingEx = fundingEx,
+            weeklyOpen = SessionClock.weeklyOpen(bn.k1w),
+            monthlyOpen = SessionClock.monthlyOpen(bn.k1M),
         )
     }
 
@@ -148,6 +160,8 @@ class ExchangeRest(private val client: OkHttpClient) {
         val k5 = get("$BN/fapi/v1/klines?symbol=$pair&interval=5m&limit=600")
         val k15 = get("$BN/fapi/v1/klines?symbol=$pair&interval=15m&limit=600")
         val k1h = get("$BN/fapi/v1/klines?symbol=$pair&interval=1h&limit=200")
+        val k1w = get("$BN/fapi/v1/klines?symbol=$pair&interval=1w&limit=4")
+        val k1M = get("$BN/fapi/v1/klines?symbol=$pair&interval=1M&limit=4")
 
         val tObj = ticker.asObj()
         val prices = mutableListOf<NamedPrice>()
@@ -181,6 +195,8 @@ class ExchangeRest(private val client: OkHttpClient) {
             k15 = parseKlines(k15),
             k1h = parseKlines(k1h),
             nextFundingMs = prem.asObj()?.num("nextFundingTime")?.toLong() ?: 0L,
+            k1w = parseKlines(k1w),
+            k1M = parseKlines(k1M),
         )
     }
 

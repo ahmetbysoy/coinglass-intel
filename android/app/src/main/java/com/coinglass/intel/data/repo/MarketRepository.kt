@@ -334,6 +334,15 @@ class MarketRepository(
             btcChg24 = base?.btcChg24 ?: 0.0,
             nextFundingMs = base?.nextFundingMs ?: 0L,
             minutesToFunding = base?.minutesToFunding ?: 999.0,
+            fundingEx = run {
+                val rows = base?.fundingEx.orEmpty()
+                if (liveFunding != 0.0) {
+                    listOf(com.coinglass.intel.domain.model.ExFunding("BN", liveFunding)) +
+                        rows.filter { it.exchange != "BN" }
+                } else rows
+            },
+            weeklyOpen = base?.weeklyOpen ?: 0.0,
+            monthlyOpen = base?.monthlyOpen ?: 0.0,
         )
         val report = MarketScorer.score(input)
         val live = binance.publicStats.value.connected || binance.marketStats.value.connected

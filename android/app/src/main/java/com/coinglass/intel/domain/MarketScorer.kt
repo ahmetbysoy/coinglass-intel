@@ -279,6 +279,9 @@ object MarketScorer {
             divergeType = (divergence["type"] as? String).orEmpty(),
             riskMode = Curves.riskMode(atrHist),
             smcBoost = smcBoost,
+            fundingEx = feed.fundingEx,
+            weeklyOpen = feed.weeklyOpen,
+            monthlyOpen = feed.monthlyOpen,
         )
     }
 

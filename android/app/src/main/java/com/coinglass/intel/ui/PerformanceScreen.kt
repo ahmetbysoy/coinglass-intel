@@ -33,8 +33,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.coinglass.intel.data.db.OutcomeEntity
 import com.coinglass.intel.data.db.PaperTradeEntity
-import com.coinglass.intel.domain.fmtPrice
 import com.coinglass.intel.domain.DailyRisk
+import com.coinglass.intel.domain.MarginSimulator
+import com.coinglass.intel.domain.fmtPrice
 import com.coinglass.intel.ui.theme.Bear
 import com.coinglass.intel.ui.theme.Bull
 import com.coinglass.intel.ui.theme.Radii
@@ -162,6 +163,8 @@ fun PerformanceScreen(
         Attribution(settled, ::winOf)
         Spacer(Modifier.height(10.dp))
         PositionCard(report, equityUsd, riskPct)
+        Spacer(Modifier.height(Space.sm))
+        LiqSimCard(report)
         Spacer(Modifier.height(10.dp))
         if (papers.isNotEmpty()) {
             Text("KAĞIT", color = scheme.primary, fontSize = 11.sp, fontWeight = FontWeight.Black)
@@ -223,6 +226,31 @@ private fun Attribution(settled: List<OutcomeEntity>, winOf: (OutcomeEntity) -> 
             color = if (wr >= 0.5) Bull else Bear,
             fontSize = 11.sp,
             fontFamily = FontFamily.Monospace,
+        )
+    }
+}
+
+@Composable
+private fun LiqSimCard(r: com.coinglass.intel.domain.model.V4Report?) {
+    val scheme = MaterialTheme.colorScheme
+    val entry = r?.price ?: 0.0
+    if (entry <= 0.0) return
+    val longPx = MarginSimulator.liqPrice(entry, 10.0, "long")
+    val shortPx = MarginSimulator.liqPrice(entry, 10.0, "short")
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(Radii.lg))
+            .background(scheme.surface)
+            .padding(Space.md),
+    ) {
+        Text("İZOLE LIQ  lev10", color = scheme.onSurfaceVariant, fontSize = 11.sp, letterSpacing = 0.8.sp)
+        Text(
+            "L ${fmtPrice(longPx)}   S ${fmtPrice(shortPx)}  ·  emir yok",
+            color = scheme.onSurface,
+            fontSize = 13.sp,
+            fontFamily = FontFamily.Monospace,
+            fontWeight = FontWeight.SemiBold,
         )
     }
 }

@@ -16,6 +16,10 @@ A/B + enterOk iken **KAĞIT AÇ**. SL/TP veya 15dk timeout. Emir gitmez.
 
 İki liste: **KEŞİF** + **WATCHLIST**. Açık kağıt satırları üstte.
 
+## Nabız
+
+Seans (Asia/London/NY UTC) + haftalık/aylık open. Funding BN/BY/OKX yan yana, 30dk kala kırmızı. İsabet’te izole liq lev10 (emir yok).
+
 ## Alarm
 
 Ayarlar’da CRUD. Sembol sen yazarsın (hardcode yok). Tip: fiyat / |skor| / |funding|. ≥ veya ≤. Dedup 10dk / alarm. AlertService + canlı rapor. Widget’a dokunulmaz.

@@ -75,6 +75,8 @@ data class OrderBook(
 
 data class NamedPrice(val exchange: String, val price: Double)
 
+data class ExFunding(val exchange: String, val rate: Double)
+
 data class ScoreInput(
     val symbol: String,
     val prices: List<NamedPrice>,
@@ -101,6 +103,9 @@ data class ScoreInput(
     val btcChg24: Double = 0.0,
     val nextFundingMs: Long = 0L,
     val minutesToFunding: Double = 999.0,
+    val fundingEx: List<ExFunding> = emptyList(),
+    val weeklyOpen: Double = 0.0,
+    val monthlyOpen: Double = 0.0,
 )
 
 data class SimpleSignal(
@@ -168,6 +173,9 @@ data class V4Report(
     val divergeType: String = "",
     val riskMode: String = "static",
     val smcBoost: Int = 0,
+    val fundingEx: List<ExFunding> = emptyList(),
+    val weeklyOpen: Double = 0.0,
+    val monthlyOpen: Double = 0.0,
 )
 
 data class LaneStats(

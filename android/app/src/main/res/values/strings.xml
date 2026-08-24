@@ -16,4 +16,13 @@
     <string name="alarm_add">EKLE</string>
     <string name="alarm_empty">alarm yok — sembol yaz</string>
     <string name="alarm_delete">sil</string>
+    <string name="pulse_no_symbol">sembol yok — Karar’da pair yaz</string>
+    <string name="pulse_session">SEANS (UTC)</string>
+    <string name="pulse_week_month">HAFTALIK / AYLIK OPEN</string>
+    <string name="pulse_funding">FUNDING η</string>
+    <string name="pulse_funding_none">funding η yok</string>
+    <string name="pulse_funding_near">FUNDING YAKIN</string>
+    <string name="pulse_funding_ex">FUNDING BN / BY / OKX</string>
+    <string name="pulse_liq">LİKİDASYON</string>
+    <string name="pulse_liq_none">akış yok</string>
 </resources>

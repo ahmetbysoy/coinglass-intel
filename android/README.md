@@ -1,1 +1,1 @@
-v1.18: Faz 5 Alarm — CRUD Ayarlar, AlarmEngine, Room v8, 10dk dedup.
+v1.19: Faz 6 Nabız — seans + weekly/monthly open, BN/BY/OKX funding, izole liq sim.
