@@ -112,11 +112,7 @@ class CandleChartState(
             last = value
             val atLive = offsetFromEnd == 0 && panRemain <= 0f && delta < 0f
             val atOld = offsetFromEnd >= ChartViewport.maxOffset(total, visible) && delta > 0f
-            if (atLive || atOld) {
-                cancelAnimation()
-                return@animateDecay
-            }
-            panByPixels(delta, slotPx)
+            if (!atLive && !atOld) panByPixels(delta, slotPx)
         }
     }
 
