@@ -26,7 +26,7 @@ Ayarlar’da CRUD. Sembol sen yazarsın (hardcode yok). Tip: fiyat / |skor| / |f
 
 ## Grafik
 
-v1.25: DOM — spread, baskı barı, kümülatif/16, spoof nabız, Locale.US. Radar saveable. Liq dikey. ViewModel helm.
+v1.25: DOM spread/baskı/kümülatif. Radar saveable. Liq dikey. ViewModel helm. Grafik hoist.
 
 HTML envanter: [`CHART-HTML.md`](CHART-HTML.md).
 
