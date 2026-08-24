@@ -13,6 +13,7 @@ Kaynak: `ziya_slim_pain_pro_v6` HTML. Grafik motoru **TradingView Lightweight Ch
 | 4 | `EmaCache`, `AxisLabelCache`, solid volume, window `toList()`, `snapshotFlow`+150ms |
 | 3 | `ChartGesture.afterMove/afterTimeout/tapKind`, `Animatable`+`splineBasedDecay`, haptic |
 | 5 | FilterChip, string resource, Loading/Error, dinamik tooltip, ⟲ Oto |
+| 1.20 | Overlay DataStore persist, magnet OHLC, KARAR satırı header |
 
 ## Jestler
 

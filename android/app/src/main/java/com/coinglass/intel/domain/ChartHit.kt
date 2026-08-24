@@ -32,6 +32,28 @@ object ChartHit {
 
     fun timeOf(shown: List<Candle>, idx: Int): Double? = shown.getOrNull(idx)?.openTime
 
+    /** Pixel y in the candle pane → price. y=0 is hi. */
+    fun priceAtY(y: Float, candleH: Float, lo: Double, hi: Double): Double {
+        if (!y.isFinite() || candleH <= 0f || !lo.isFinite() || !hi.isFinite()) return hi
+        val t = (1.0 - (y / candleH).toDouble()).coerceIn(0.0, 1.0)
+        return lo + (hi - lo) * t
+    }
+
+    /** Snap to nearest OHLC (LW magnet). */
+    fun magnet(c: Candle, target: Double): Double {
+        if (!target.isFinite()) return c.close
+        var best = c.close
+        var bestD = kotlin.math.abs(c.close - target)
+        for (p in doubleArrayOf(c.open, c.high, c.low)) {
+            val d = kotlin.math.abs(p - target)
+            if (d < bestD) {
+                bestD = d
+                best = p
+            }
+        }
+        return best
+    }
+
     fun timeMs(openTime: Double): Long {
         val t = openTime.toLong()
         return if (t in 1 until 10_000_000_000L) t * 1000L else t

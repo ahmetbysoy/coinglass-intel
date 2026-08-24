@@ -42,6 +42,8 @@ data class ChartLevels(
 data class ChartSignals(
     val spoofScore: Int = 0,
     val divergence: Divergence = Divergence.NONE,
+    val grade: String = "",
+    val verdict: String = "",
 ) {
     val spoofSkip: Boolean get() = spoofScore >= SPOOF_THRESHOLD
 

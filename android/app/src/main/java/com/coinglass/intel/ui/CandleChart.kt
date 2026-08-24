@@ -110,8 +110,10 @@ fun CandleChart(
     onSelectTf: (String) -> Unit,
     modifier: Modifier = Modifier,
     initialVisible: Int = ChartSeries.VISIBLE_BARS,
+    initialOverlays: Set<Overlay> = com.coinglass.intel.domain.DEFAULT_OVERLAYS,
     onVisibleChange: (Int) -> Unit = {},
-    state: CandleChartState = rememberCandleChartState(initialVisible),
+    onOverlaysChange: (Int) -> Unit = {},
+    state: CandleChartState = rememberCandleChartState(initialVisible, initialOverlays),
     chartHeight: Dp = 320.dp,
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -128,6 +130,7 @@ fun CandleChart(
     val slop = viewConfig.touchSlop
     val longPressMs = viewConfig.longPressTimeoutMillis
     val onVisibleLatest by rememberUpdatedState(onVisibleChange)
+    val onOverlaysLatest by rememberUpdatedState(onOverlaysChange)
     var headerH by remember { mutableStateOf(78.dp) }
     var lastTapAt by remember { mutableStateOf(0L) }
     var flingJob by remember { mutableStateOf<Job?>(null) }
@@ -144,6 +147,12 @@ fun CandleChart(
             .distinctUntilChanged()
             .debounce(150)
             .collect { onVisibleLatest(it) }
+    }
+    LaunchedEffect(state) {
+        snapshotFlow { state.overlays.pack() }
+            .distinctUntilChanged()
+            .debounce(150)
+            .collect { onOverlaysLatest(it) }
     }
     LaunchedEffect(chartTf) {
         state.jumpToLive()
@@ -201,27 +210,13 @@ fun CandleChart(
                                         flingJob?.cancel()
                                         flingJob = scope.launch { state.fling(vx, slot) }
                                     },
-                                    onTap = { x ->
-                                        val geo = geoOf(state, priceGutterPx, heatGutterPx, timeHpx)
-                                        val last = (ChartViewport.window(state.total, state.visible, state.offsetFromEnd).size - 1).coerceAtLeast(0)
-                                        val idx = geo.candleIndex(x, last)
-                                        val t = if (idx == null) null else {
-                                            val w = ChartViewport.window(state.total, state.visible, state.offsetFromEnd)
-                                            candlesRef.value.getOrNull(w.start + idx)?.openTime
-                                        }
-                                        state.setCrosshair(t)
+                                    onTap = { x, y ->
+                                        applyCrosshair(state, candlesRef.value, x, y, priceGutterPx, heatGutterPx, timeHpx)
                                     },
                                     onDoubleTap = { state.reset() },
-                                    onCrosshair = { x ->
+                                    onCrosshair = { x, y ->
                                         haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        val geo = geoOf(state, priceGutterPx, heatGutterPx, timeHpx)
-                                        val last = (ChartViewport.window(state.total, state.visible, state.offsetFromEnd).size - 1).coerceAtLeast(0)
-                                        val idx = geo.candleIndex(x, last)
-                                        val t = if (idx == null) null else {
-                                            val w = ChartViewport.window(state.total, state.visible, state.offsetFromEnd)
-                                            candlesRef.value.getOrNull(w.start + idx)?.openTime
-                                        }
-                                        state.setCrosshair(t)
+                                        applyCrosshair(state, candlesRef.value, x, y, priceGutterPx, heatGutterPx, timeHpx)
                                     },
                                     lastTapUptime = { lastTapAt },
                                     setLastTap = { lastTapAt = it },
@@ -361,6 +356,38 @@ private fun ChartPlaceholder(text: String, pulsing: Boolean) {
     }
 }
 
+private fun PointerInputScope.applyCrosshair(
+    state: CandleChartState,
+    candles: List<Candle>,
+    x: Float,
+    y: Float,
+    priceGutter: Float,
+    heatGutter: Float,
+    timeH: Float,
+) {
+    val geo = geoOf(state, priceGutter, heatGutter, timeH)
+    val win = ChartViewport.window(state.total, state.visible, state.offsetFromEnd)
+    val last = (win.size - 1).coerceAtLeast(0)
+    val idx = geo.candleIndex(x, last)
+    if (idx == null) {
+        state.setCrosshair(null)
+        return
+    }
+    val c = candles.getOrNull(win.start + idx)
+    if (c == null) {
+        state.setCrosshair(null)
+        return
+    }
+    val slice = if (win.endExclusive > win.start) candles.subList(win.start, win.endExclusive) else emptyList()
+    val lo0 = slice.minOfOrNull { it.low } ?: c.low
+    val hi0 = slice.maxOfOrNull { it.high } ?: c.high
+    val raw = ChartRange.bounds(lo0, hi0, emptyList())
+    val mid = (raw.first + raw.second) / 2.0
+    val half = ((raw.second - raw.first) / 2.0) * state.priceZoom.toDouble()
+    val target = ChartHit.priceAtY(y, geo.candleH, mid - half, mid + half)
+    state.setCrosshair(c.openTime, ChartHit.magnet(c, target))
+}
+
 private fun PointerInputScope.geoOf(
     state: CandleChartState,
     priceGutter: Float,
@@ -391,9 +418,9 @@ private suspend fun PointerInputScope.handleChartTouches(
     timeH: Float,
     onCancelFling: () -> Unit,
     onFling: (vx: Float, slot: Float) -> Unit,
-    onTap: (x: Float) -> Unit,
+    onTap: (x: Float, y: Float) -> Unit,
     onDoubleTap: () -> Unit,
-    onCrosshair: (x: Float) -> Unit,
+    onCrosshair: (x: Float, y: Float) -> Unit,
     lastTapUptime: () -> Long,
     setLastTap: (Long) -> Unit,
 ) {
@@ -449,9 +476,9 @@ private suspend fun PointerInputScope.handleChartTouches(
                 ChartGesture.Mode.CROSS -> {
                     if (!hapticOnce) {
                         hapticOnce = true
-                        onCrosshair(p.position.x)
+                        onCrosshair(p.position.x, p.position.y)
                     } else {
-                        onTap(p.position.x)
+                        onTap(p.position.x, p.position.y)
                     }
                 }
                 else -> Unit
@@ -464,7 +491,7 @@ private suspend fun PointerInputScope.handleChartTouches(
             val event = withTimeoutOrNull(wait) { awaitPointerEvent() }
             if (event == null) {
                 mode = ChartGesture.afterTimeout(mode)
-                onCrosshair(start.x)
+                onCrosshair(start.x, start.y)
                 hapticOnce = true
                 break
             }
@@ -475,7 +502,7 @@ private suspend fun PointerInputScope.handleChartTouches(
                     onDoubleTap()
                     setLastTap(0L)
                 } else {
-                    onTap(start.x)
+                    onTap(start.x, start.y)
                     setLastTap(now)
                 }
                 return@awaitEachGesture
@@ -690,7 +717,8 @@ private fun DrawScope.drawChart(
         val hx = geo.xCenter(hitIdx)
         val hc = shown[hitIdx]
         drawLine(accent.copy(alpha = 0.85f), Offset(hx, 0f), Offset(hx, geo.candleH + geo.volH), 1.3f)
-        val cy = y(hc.close)
+        val hitPx = state.crosshairPrice?.takeIf { it > 0.0 } ?: hc.close
+        val cy = y(hitPx)
         drawLine(accent.copy(alpha = 0.45f), Offset(geo.plotLeft, cy), Offset(gridRight, cy), 1.2f, pathEffect = thin)
         val tLayout = labels.measure(measurer, ChartHit.formatTime(hc.openTime), axisStyle.copy(fontSize = 9.sp))
         val tx = (hx - tLayout.size.width / 2f).coerceIn(geo.plotLeft, (plotRight - tLayout.size.width).coerceAtLeast(geo.plotLeft))
@@ -787,8 +815,14 @@ private fun ChartHeader(
             }
         }
         Text(
-            "e ${fmtPrice(levels.entry)}  sl ${fmtPrice(levels.sl)}  tp ${fmtPrice(levels.tp)}" +
-                if (signals.spoofSkip) "  spoof-skip" else "",
+            listOfNotNull(
+                signals.grade.takeIf { it.isNotBlank() }?.let { "KARAR $it" },
+                signals.verdict.takeIf { it.isNotBlank() },
+            ).joinToString("  ").ifBlank { "" }.let { head ->
+                val tail = "e ${fmtPrice(levels.entry)}  sl ${fmtPrice(levels.sl)}  tp ${fmtPrice(levels.tp)}" +
+                    if (signals.spoofSkip) "  spoof-skip" else ""
+                if (head.isBlank()) tail else "$head  ·  $tail"
+            },
             color = Color.White.copy(alpha = 0.7f),
             fontSize = 10.sp,
             modifier = Modifier.padding(top = 4.dp),

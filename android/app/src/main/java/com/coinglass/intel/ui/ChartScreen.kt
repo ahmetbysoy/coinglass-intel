@@ -18,6 +18,7 @@ import com.coinglass.intel.domain.ChartLevels
 import com.coinglass.intel.domain.ChartSignals
 import com.coinglass.intel.domain.Divergence
 import com.coinglass.intel.domain.Smc
+import com.coinglass.intel.domain.overlaySet
 import com.coinglass.intel.ui.theme.Space
 
 @Composable
@@ -51,6 +52,8 @@ fun ChartScreen(vm: AppViewModel) {
     val signals = ChartSignals(
         spoofScore = r?.spoof ?: 0,
         divergence = Divergence.from(r?.divergeType.orEmpty()),
+        grade = r?.grade.orEmpty(),
+        verdict = r?.verdict.orEmpty(),
     )
     Column(
         modifier = Modifier
@@ -66,8 +69,12 @@ fun ChartScreen(vm: AppViewModel) {
             chartTf = state.chartTf,
             onSelectTf = { vm.selectChartTf(it) },
             initialVisible = cfg.chartVisibleBars,
+            initialOverlays = overlaySet(cfg.chartOverlays),
             onVisibleChange = { n ->
                 if (n != cfg.chartVisibleBars) vm.updateSettings { it.copy(chartVisibleBars = n) }
+            },
+            onOverlaysChange = { packed ->
+                if (packed != cfg.chartOverlays) vm.updateSettings { it.copy(chartOverlays = packed) }
             },
             modifier = Modifier.weight(1f).fillMaxWidth(),
         )

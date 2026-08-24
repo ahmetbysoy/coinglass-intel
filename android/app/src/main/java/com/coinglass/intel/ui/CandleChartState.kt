@@ -35,6 +35,7 @@ class CandleChartState(
     var panRemain by mutableFloatStateOf(0f)
     var zoomRemain by mutableFloatStateOf(1f)
     var crosshairTime by mutableStateOf<Double?>(null)
+    var crosshairPrice by mutableStateOf<Double?>(null)
     var total by mutableIntStateOf(0)
         internal set
 
@@ -81,6 +82,7 @@ class CandleChartState(
         panRemain = 0f
         zoomRemain = 1f
         crosshairTime = null
+        crosshairPrice = null
     }
 
     fun jumpToLive() {
@@ -101,7 +103,10 @@ class CandleChartState(
         priceZoom = (priceZoom * (1f + dy01 * 2.2f)).coerceIn(PRICE_MIN, PRICE_MAX)
     }
 
-    fun setCrosshair(openTime: Double?) { crosshairTime = openTime }
+    fun setCrosshair(openTime: Double?, price: Double? = null) {
+        crosshairTime = openTime
+        crosshairPrice = if (openTime == null) null else price
+    }
 
     suspend fun fling(velocityPxPerSec: Float, slotPx: Float) {
         if (!ChartGesture.shouldFling(velocityPxPerSec) || slotPx <= 0f) return

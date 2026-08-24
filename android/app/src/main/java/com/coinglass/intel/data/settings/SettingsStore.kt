@@ -7,6 +7,8 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.coinglass.intel.domain.DEFAULT_OVERLAYS
+import com.coinglass.intel.domain.pack
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -27,6 +29,7 @@ data class UserSettings(
     val opportunityNotify: Boolean = false,
     val autoPaper: Boolean = false,
     val chartVisibleBars: Int = 90,
+    val chartOverlays: Int = DEFAULT_OVERLAYS.pack(),
 )
 
 class SettingsStore(private val ctx: Context) {
@@ -44,6 +47,7 @@ class SettingsStore(private val ctx: Context) {
     private val OPP = booleanPreferencesKey("opp_notify")
     private val PAPER = booleanPreferencesKey("auto_paper")
     private val CHART_N = intPreferencesKey("chart_visible")
+    private val CHART_O = intPreferencesKey("chart_overlays")
 
     val flow: Flow<UserSettings> = ctx.dataStore.data.map { p ->
         UserSettings(
@@ -61,6 +65,7 @@ class SettingsStore(private val ctx: Context) {
             opportunityNotify = p[OPP] ?: false,
             autoPaper = p[PAPER] ?: false,
             chartVisibleBars = p[CHART_N] ?: 90,
+            chartOverlays = p[CHART_O] ?: DEFAULT_OVERLAYS.pack(),
         )
     }
 
@@ -81,6 +86,7 @@ class SettingsStore(private val ctx: Context) {
                 opportunityNotify = p[OPP] ?: false,
                 autoPaper = p[PAPER] ?: false,
                 chartVisibleBars = p[CHART_N] ?: 90,
+                chartOverlays = p[CHART_O] ?: DEFAULT_OVERLAYS.pack(),
             )
             val n = block(cur)
             p[LIQ] = n.liqAlertUsd
@@ -97,6 +103,7 @@ class SettingsStore(private val ctx: Context) {
             p[OPP] = n.opportunityNotify
             p[PAPER] = n.autoPaper
             p[CHART_N] = n.chartVisibleBars
+            p[CHART_O] = n.chartOverlays
         }
     }
 }

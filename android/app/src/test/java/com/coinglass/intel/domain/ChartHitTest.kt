@@ -70,4 +70,20 @@ class ChartHitTest {
         assertEquals(-1, ChartHit.indexOfTime(bars, null))
         assertEquals(20.0, ChartHit.timeOf(bars, 1)!!, 0.0)
     }
+
+    @Test
+    fun magnetSnapsToNearestOhlc() {
+        val c = Candle(1.0, open = 100.0, high = 110.0, low = 90.0, close = 105.0, volume = 1.0)
+        assertEquals(110.0, ChartHit.magnet(c, 109.0), 0.0)
+        assertEquals(90.0, ChartHit.magnet(c, 91.0), 0.0)
+        assertEquals(100.0, ChartHit.magnet(c, 99.2), 0.0)
+        assertEquals(105.0, ChartHit.magnet(c, 104.0), 0.0)
+    }
+
+    @Test
+    fun priceAtYMapsTopToHigh() {
+        assertEquals(120.0, ChartHit.priceAtY(0f, 100f, 100.0, 120.0), 1e-9)
+        assertEquals(100.0, ChartHit.priceAtY(100f, 100f, 100.0, 120.0), 1e-9)
+        assertEquals(110.0, ChartHit.priceAtY(50f, 100f, 100.0, 120.0), 1e-9)
+    }
 }

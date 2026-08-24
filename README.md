@@ -26,7 +26,7 @@ Ayarlar’da CRUD. Sembol sen yazarsın (hardcode yok). Tip: fiyat / |skor| / |f
 
 ## Grafik
 
-v1.17: `ChartData` / `ChartLevels` / `ChartSignals` imzası. `CandleChartState` (bitmask yok, `Set<Overlay>`). Crosshair **openTime**. Fling `Animatable` + spline decay. Incremental `EmaCache`. Axis label cache. `snapshotFlow` debounce. Loading/Error. FilterChip + ⟲ Oto. Jestler: tek parmak pan, pinch, sağ gutter y-scale, çift dokun sıfırla.
+v1.20: overlay chip DataStore persist. Magnet crosshair (OHLC’ye yapışır). Header’da KARAR satırı. Jestler: tek parmak pan, pinch, sağ gutter y-scale, çift dokun sıfırla.
 
 HTML envanter: [`CHART-HTML.md`](CHART-HTML.md).
 
