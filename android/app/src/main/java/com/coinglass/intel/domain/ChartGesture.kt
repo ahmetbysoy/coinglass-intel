@@ -36,4 +36,33 @@ object ChartGesture {
     fun decay(v: Float): Float = v * FLING_DECAY
 
     fun flingDone(v: Float): Boolean = !v.isFinite() || abs(v) < FLING_MIN_BARS
+
+    enum class Mode { UNDECIDED, PAN, PINCH, PRICE, CROSS }
+
+    enum class Tap { SINGLE, DOUBLE }
+
+    /** Pointer-loop decisions. No Compose. Once PINCH, stay PINCH until the gesture ends. */
+    fun afterMove(
+        mode: Mode,
+        pointerCount: Int,
+        dxFromStart: Float,
+        dyFromStart: Float,
+        startX: Float,
+        slop: Float,
+        scaleLeft: Float,
+    ): Mode {
+        if (pointerCount >= 2 || mode == Mode.PINCH) return Mode.PINCH
+        if (mode != Mode.UNDECIDED) return mode
+        if (!pastSlop(dxFromStart, dyFromStart, slop)) return Mode.UNDECIDED
+        return when (dragKind(dxFromStart, dyFromStart, startX, scaleLeft)) {
+            Drag.PRICE_ZOOM -> Mode.PRICE
+            Drag.PAN -> Mode.PAN
+        }
+    }
+
+    fun afterTimeout(mode: Mode): Mode =
+        if (mode == Mode.UNDECIDED) Mode.CROSS else mode
+
+    fun tapKind(now: Long, lastTap: Long, window: Long = DOUBLE_TAP_MS): Tap =
+        if (isDoubleTap(now, lastTap, window)) Tap.DOUBLE else Tap.SINGLE
 }

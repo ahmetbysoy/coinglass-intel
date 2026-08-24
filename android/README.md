@@ -1,1 +1,1 @@
-v1.16: tek pointer izleyici — sub-bar pan, pinch accum, fling sadece bırakınca, fiyat/heat gutter, nice ticks.
+v1.17: ChartData/Levels/Signals, CandleChartState, timestamp crosshair, Animatable fling, EmaCache, a11y chips.

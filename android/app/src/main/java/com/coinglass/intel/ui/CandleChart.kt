@@ -1,5 +1,10 @@
 package com.coinglass.intel.ui
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -13,42 +18,52 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalViewConfiguration
-import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontFamily
@@ -57,272 +72,309 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.coinglass.intel.R
+import com.coinglass.intel.domain.ChartContent
 import com.coinglass.intel.domain.ChartGesture
 import com.coinglass.intel.domain.ChartHit
 import com.coinglass.intel.domain.ChartLayout
+import com.coinglass.intel.domain.ChartLevels
 import com.coinglass.intel.domain.ChartRange
 import com.coinglass.intel.domain.ChartSeries
+import com.coinglass.intel.domain.ChartSignals
 import com.coinglass.intel.domain.ChartViewport
-import com.coinglass.intel.domain.Ema
-import com.coinglass.intel.domain.LiqHeat
-import com.coinglass.intel.domain.Smc
+import com.coinglass.intel.domain.Divergence
+import com.coinglass.intel.domain.EmaCache
+import com.coinglass.intel.domain.Overlay
 import com.coinglass.intel.domain.Structure
 import com.coinglass.intel.domain.fmtPrice
 import com.coinglass.intel.domain.model.Candle
 import com.coinglass.intel.ui.theme.Bear
 import com.coinglass.intel.ui.theme.Bull
+import com.coinglass.intel.ui.theme.ChartInk
 import com.coinglass.intel.ui.theme.Radii
 import com.coinglass.intel.ui.theme.Space
 import com.coinglass.intel.ui.theme.Warn
 import kotlin.math.abs
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
-
-private enum class ChartTouch { UNDECIDED, PAN, PINCH, PRICE, CROSS }
 
 @Composable
 fun CandleChart(
-    candles: List<Candle>,
-    entry: Double,
-    sl: Double,
-    tp: Double,
+    content: ChartContent,
+    levels: ChartLevels,
+    signals: ChartSignals,
     chartTf: String,
     onSelectTf: (String) -> Unit,
-    support: Double = 0.0,
-    resistance: Double = 0.0,
-    bidWall: Double = 0.0,
-    askWall: Double = 0.0,
-    poc: Double = 0.0,
-    spoof: Int = 0,
-    divergeType: String = "",
-    liqHeat: LiqHeat.Grid = LiqHeat.Grid(),
-    chartHeight: Dp = 320.dp,
-    smc: Smc.Report = Smc.Report(),
     modifier: Modifier = Modifier,
     initialVisible: Int = ChartSeries.VISIBLE_BARS,
     onVisibleChange: (Int) -> Unit = {},
+    state: CandleChartState = rememberCandleChartState(initialVisible),
+    chartHeight: Dp = 320.dp,
 ) {
     val scheme = MaterialTheme.colorScheme
     val accent = scheme.primary
-    val state = rememberChartViewState(initialVisible)
     val measurer = rememberTextMeasurer()
+    val labels = remember { AxisLabelCache() }
     val density = LocalDensity.current
     val viewConfig = LocalViewConfiguration.current
+    val haptics = LocalHapticFeedback.current
+    val scope = rememberCoroutineScope()
     val priceGutterPx = with(density) { 62.dp.toPx() }
     val heatGutterPx = with(density) { 24.dp.toPx() }
     val timeHpx = with(density) { 13.sp.toPx() }
     val slop = viewConfig.touchSlop
     val longPressMs = viewConfig.longPressTimeoutMillis
-    var hitIdx by remember { mutableIntStateOf(-1) }
-    var flingKick by remember { mutableIntStateOf(0) }
-    var flingVel by remember { mutableFloatStateOf(0f) }
-    var prevTotal by remember { mutableIntStateOf(candles.size) }
-    var lastTapAt by remember { mutableLongStateOf(0L) }
-    val totalState = remember { mutableIntStateOf(candles.size) }
-    totalState.intValue = candles.size
+    val onVisibleLatest by rememberUpdatedState(onVisibleChange)
+    var headerH by remember { mutableStateOf(78.dp) }
+    var lastTapAt by remember { mutableStateOf(0L) }
+    var flingJob by remember { mutableStateOf<Job?>(null) }
+    val emaFastCache = remember { EmaCache(20) }
+    val emaSlowCache = remember { EmaCache(50) }
+    val emptyText = stringResource(R.string.chart_empty)
+    val liveText = stringResource(R.string.chart_live)
+    val autoText = stringResource(R.string.chart_auto_scale)
+    val onDesc = stringResource(R.string.chart_overlay_on)
+    val offDesc = stringResource(R.string.chart_overlay_off)
 
-    val total = candles.size
-    LaunchedEffect(total) {
-        state.onGrow(prevTotal, total)
-        prevTotal = total
+    LaunchedEffect(state) {
+        snapshotFlow { state.visible }
+            .distinctUntilChanged()
+            .debounce(150)
+            .collect { onVisibleLatest(it) }
     }
-    val win = ChartViewport.window(total, state.visible, state.offsetFromEnd)
-    val shown = remember(candles, win.start, win.endExclusive) {
-        if (win.endExclusive > win.start) candles.subList(win.start, win.endExclusive) else emptyList()
-    }
-    val localVa = remember(shown) { Structure.volumeArea(shown) }
-    val emaFast = remember(candles) { Ema.of(candles.map { it.close }, 20) }
-    val emaSlow = remember(candles) { Ema.of(candles.map { it.close }, 50) }
     LaunchedEffect(chartTf) {
-        hitIdx = -1
         state.jumpToLive()
+        state.setCrosshair(null)
     }
-    LaunchedEffect(state.visible) { onVisibleChange(state.visible) }
-    LaunchedEffect(flingKick) {
-        val start = flingVel
-        if (ChartGesture.flingDone(start)) return@LaunchedEffect
-        var v = start
-        while (!ChartGesture.flingDone(v)) {
-            delay(16)
-            state.panRemain += v
-            val b = state.panRemain.toInt()
-            if (b != 0) {
-                state.panRemain -= b
-                state.pan(b, totalState.intValue)
-            }
-            v = ChartGesture.decay(v)
-        }
-    }
-    val tip = if (hitIdx in shown.indices) ChartHit.tip(shown, hitIdx, liqHeat) else null
-    val lastClose = candles.lastOrNull()?.close ?: 0.0
 
-    Column(
+    Box(
         modifier = modifier
             .fillMaxWidth()
+            .heightIn(min = maxOf(chartHeight, 280.dp))
             .clip(RoundedCornerShape(Radii.md))
             .background(scheme.surface)
-            .border(1.dp, scheme.outline, RoundedCornerShape(Radii.md)),
+            .border(1.dp, scheme.outline, RoundedCornerShape(Radii.md))
+            .background(ChartInk.Plot),
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = maxOf(chartHeight, 280.dp))
-                .weight(1f, fill = true)
-                .background(Color(0xFF08141C)),
-        ) {
-            if (shown.size < 2) {
-                Text(
-                    "mum yok — sembol seç, 600 bar REST geliyor",
-                    color = scheme.onSurfaceVariant,
-                    fontSize = 12.sp,
-                    modifier = Modifier.align(Alignment.Center).padding(Space.md),
-                )
-            } else {
-                Canvas(
-                    Modifier
-                        .fillMaxSize()
-                        .padding(4.dp)
-                        .pointerInput(Unit) {
-                            handleChartTouches(
-                                state = state,
-                                total = { totalState.intValue },
-                                slop = slop,
-                                longPressMs = longPressMs,
-                                priceGutter = priceGutterPx,
-                                heatGutter = heatGutterPx,
-                                timeH = timeHpx,
-                                onCancelFling = {
-                                    flingVel = 0f
-                                    flingKick++
-                                },
-                                onFling = { vx, slot ->
-                                    val bars = ChartGesture.flingBarsPerFrame(vx, slot)
-                                    if (!ChartGesture.flingDone(bars)) {
-                                        flingVel = bars
-                                        flingKick++
-                                    }
-                                },
-                                onTap = { x, _ ->
-                                    val tot = totalState.intValue
-                                    val geo = geoOf(state, tot, priceGutterPx, heatGutterPx, timeHpx)
-                                    val last = (ChartViewport.window(tot, state.visible, state.offsetFromEnd).size - 1).coerceAtLeast(0)
-                                    hitIdx = geo.candleIndex(x, last) ?: -1
-                                },
-                                onDoubleTap = {
-                                    state.reset()
-                                    hitIdx = -1
-                                },
-                                onCrosshair = { x, _ ->
-                                    val tot = totalState.intValue
-                                    val geo = geoOf(state, tot, priceGutterPx, heatGutterPx, timeHpx)
-                                    val last = (ChartViewport.window(tot, state.visible, state.offsetFromEnd).size - 1).coerceAtLeast(0)
-                                    hitIdx = geo.candleIndex(x, last) ?: -1
-                                },
-                                lastTapUptime = { lastTapAt },
-                                setLastTap = { lastTapAt = it },
-                            )
-                        },
-                ) {
-                    val geo = ChartLayout.geo(
-                        width = size.width,
-                        height = size.height,
-                        shown = shown.size,
-                        following = state.following,
-                        showVol = state.has(ChartViewState.FLAG_VOL),
-                        showHeat = state.has(ChartViewState.FLAG_HEAT),
-                        priceGutter = priceGutterPx,
-                        heatGutter = heatGutterPx,
-                        timeH = timeHpx,
-                        shiftBars = state.panRemain,
-                    )
-                    drawChart(
-                        shown = shown,
-                        startIdx = win.start,
-                        entry = entry,
-                        sl = sl,
-                        tp = tp,
-                        support = support,
-                        resistance = resistance,
-                        bidWall = bidWall,
-                        askWall = askWall,
-                        spoof = spoof,
-                        divergeType = divergeType,
-                        heat = liqHeat,
-                        smc = smc,
-                        localVa = localVa,
-                        emaFast = emaFast,
-                        emaSlow = emaSlow,
-                        lastClose = lastClose,
-                        hitIdx = hitIdx,
-                        state = state,
-                        accent = accent,
-                        measurer = measurer,
-                        geo = geo,
-                    )
+        when (content) {
+            ChartContent.Loading -> ChartPlaceholder(emptyText, pulsing = true)
+            is ChartContent.Error -> ChartPlaceholder(content.message, pulsing = false)
+            is ChartContent.Ready -> {
+                val data = content.data
+                val candlesRef = rememberUpdatedState(data.candles)
+                SideEffect { state.syncTotal(data.candles.size) }
+                val win = ChartViewport.window(data.candles.size, state.visible, state.offsetFromEnd)
+                val shown = if (win.endExclusive > win.start) {
+                    data.candles.subList(win.start, win.endExclusive).toList()
+                } else {
+                    emptyList()
+                }
+                if (shown.size < 2) {
+                    ChartPlaceholder(emptyText, pulsing = true)
+                } else {
+                    val localVa = remember(shown) { Structure.volumeArea(shown) }
+                    val emaFast = emaFastCache.update(data.candles)
+                    val emaSlow = emaSlowCache.update(data.candles)
+                    val hitIdx = ChartHit.indexOfTime(shown, state.crosshairTime)
+                    val tip = ChartHit.tip(shown, hitIdx, data.liqHeat)
+                    val lastClose = data.candles.last().close
+                    Canvas(
+                        Modifier
+                            .fillMaxSize()
+                            .padding(4.dp)
+                            .pointerInput(Unit) {
+                                handleChartTouches(
+                                    state = state,
+                                    slop = slop,
+                                    longPressMs = longPressMs,
+                                    priceGutter = priceGutterPx,
+                                    heatGutter = heatGutterPx,
+                                    timeH = timeHpx,
+                                    onCancelFling = {
+                                        flingJob?.cancel()
+                                        flingJob = scope.launch { state.stopFling() }
+                                    },
+                                    onFling = { vx, slot ->
+                                        flingJob?.cancel()
+                                        flingJob = scope.launch { state.fling(vx, slot, density) }
+                                    },
+                                    onTap = { x ->
+                                        val geo = geoOf(state, priceGutterPx, heatGutterPx, timeHpx)
+                                        val last = (ChartViewport.window(state.total, state.visible, state.offsetFromEnd).size - 1).coerceAtLeast(0)
+                                        val idx = geo.candleIndex(x, last)
+                                        val t = if (idx == null) null else {
+                                            val w = ChartViewport.window(state.total, state.visible, state.offsetFromEnd)
+                                            candlesRef.value.getOrNull(w.start + idx)?.openTime
+                                        }
+                                        state.setCrosshair(t)
+                                    },
+                                    onDoubleTap = { state.reset() },
+                                    onCrosshair = { x ->
+                                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        val geo = geoOf(state, priceGutterPx, heatGutterPx, timeHpx)
+                                        val last = (ChartViewport.window(state.total, state.visible, state.offsetFromEnd).size - 1).coerceAtLeast(0)
+                                        val idx = geo.candleIndex(x, last)
+                                        val t = if (idx == null) null else {
+                                            val w = ChartViewport.window(state.total, state.visible, state.offsetFromEnd)
+                                            candlesRef.value.getOrNull(w.start + idx)?.openTime
+                                        }
+                                        state.setCrosshair(t)
+                                    },
+                                    lastTapUptime = { lastTapAt },
+                                    setLastTap = { lastTapAt = it },
+                                )
+                            },
+                    ) {
+                        val geo = ChartLayout.geo(
+                            width = size.width,
+                            height = size.height,
+                            shown = shown.size,
+                            following = state.following,
+                            showVol = state.has(Overlay.VOL),
+                            showHeat = state.has(Overlay.HEAT),
+                            priceGutter = priceGutterPx,
+                            heatGutter = heatGutterPx,
+                            timeH = timeHpx,
+                            shiftBars = state.panRemain,
+                        )
+                        drawChart(
+                            shown = shown,
+                            startIdx = win.start,
+                            levels = levels,
+                            signals = signals,
+                            heat = data.liqHeat,
+                            smc = data.smc,
+                            localVa = localVa,
+                            emaFast = emaFast,
+                            emaSlow = emaSlow,
+                            lastClose = lastClose,
+                            hitIdx = hitIdx,
+                            state = state,
+                            accent = accent,
+                            measurer = measurer,
+                            labels = labels,
+                            geo = geo,
+                        )
+                    }
+                    if (tip != null) {
+                        Text(
+                            tip.line,
+                            color = Color.White,
+                            fontSize = 10.sp,
+                            fontFamily = FontFamily.Monospace,
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .padding(top = headerH + 4.dp)
+                                .padding(horizontal = Space.sm)
+                                .clip(RoundedCornerShape(Radii.sm))
+                                .background(ChartInk.Plate)
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                        )
+                    }
+                    if (!state.following) {
+                        Text(
+                            liveText,
+                            color = scheme.onPrimary,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(end = 70.dp, bottom = Space.sm)
+                                .clip(RoundedCornerShape(Radii.sm))
+                                .background(scheme.primary.copy(alpha = 0.85f))
+                                .clickable { state.jumpToLive() }
+                                .padding(horizontal = Space.sm, vertical = 4.dp)
+                                .semantics { role = Role.Button },
+                        )
+                    }
+                    if (state.priceZoomed) {
+                        Text(
+                            "⟲ $autoText",
+                            color = scheme.onPrimary,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .padding(end = 4.dp)
+                                .clip(RoundedCornerShape(Radii.sm))
+                                .background(scheme.primary.copy(alpha = 0.85f))
+                                .clickable { state.resetPriceZoom() }
+                                .padding(horizontal = Space.sm, vertical = 4.dp)
+                                .semantics { role = Role.Button },
+                        )
+                    }
                 }
             }
-            ChartHeader(
-                state = state,
-                chartTf = chartTf,
-                onSelectTf = onSelectTf,
-                shownCount = shown.size,
-                totalCount = total,
-                entry = entry,
-                sl = sl,
-                tp = tp,
-                spoof = spoof,
-                scheme = scheme,
-                modifier = Modifier.align(Alignment.TopStart),
-            )
-            if (tip != null) {
-                Text(
-                    tip.line,
-                    color = Color.White,
-                    fontSize = 10.sp,
-                    fontFamily = FontFamily.Monospace,
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = 78.dp)
-                        .padding(horizontal = Space.sm)
-                        .clip(RoundedCornerShape(Radii.sm))
-                        .background(Color(0xCC08141C))
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
-                )
-            }
-            if (!state.following) {
-                Text(
-                    "CANLI",
-                    color = scheme.onPrimary,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(end = 70.dp, bottom = Space.sm)
-                        .clip(RoundedCornerShape(Radii.sm))
-                        .background(scheme.primary.copy(alpha = 0.85f))
-                        .clickable { state.jumpToLive() }
-                        .padding(horizontal = Space.sm, vertical = 4.dp),
-                )
-            }
         }
+        ChartHeader(
+            state = state,
+            chartTf = chartTf,
+            onSelectTf = onSelectTf,
+            shownCount = (content as? ChartContent.Ready)?.let {
+                ChartViewport.window(it.data.candles.size, state.visible, state.offsetFromEnd).size
+            } ?: 0,
+            totalCount = (content as? ChartContent.Ready)?.data?.candles?.size ?: 0,
+            levels = levels,
+            signals = signals,
+            scheme = scheme,
+            onDesc = onDesc,
+            offDesc = offDesc,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .onSizeChanged { headerH = with(density) { it.height.toDp() } },
+        )
+    }
+}
+
+@Composable
+private fun ChartPlaceholder(text: String, pulsing: Boolean) {
+    val pulse = if (pulsing) {
+        val t = rememberInfiniteTransition(label = "chart-load")
+        val a by t.animateFloat(
+            initialValue = 0.18f,
+            targetValue = 0.38f,
+            animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
+            label = "chart-load-a",
+        )
+        a
+    } else {
+        0.22f
+    }
+    Box(Modifier.fillMaxSize().background(ChartInk.Plot.copy(alpha = 1f))) {
+        Box(
+            Modifier
+                .align(Alignment.Center)
+                .fillMaxWidth(0.7f)
+                .heightIn(min = 48.dp)
+                .clip(RoundedCornerShape(Radii.md))
+                .background(Color.White.copy(alpha = pulse)),
+        )
+        Text(
+            text,
+            color = Color.White.copy(alpha = 0.7f),
+            fontSize = 13.sp,
+            modifier = Modifier.align(Alignment.Center),
+        )
     }
 }
 
 private fun PointerInputScope.geoOf(
-    state: ChartViewState,
-    total: Int,
+    state: CandleChartState,
     priceGutter: Float,
     heatGutter: Float,
     timeH: Float,
 ): ChartLayout.Geo {
-    val win = ChartViewport.window(total, state.visible, state.offsetFromEnd)
+    val win = ChartViewport.window(state.total, state.visible, state.offsetFromEnd)
     return ChartLayout.geo(
         width = size.width.toFloat(),
         height = size.height.toFloat(),
         shown = win.size.coerceAtLeast(1),
         following = state.following,
-        showVol = state.has(ChartViewState.FLAG_VOL),
-        showHeat = state.has(ChartViewState.FLAG_HEAT),
+        showVol = state.has(Overlay.VOL),
+        showHeat = state.has(Overlay.HEAT),
         priceGutter = priceGutter,
         heatGutter = heatGutter,
         timeH = timeH,
@@ -331,8 +383,7 @@ private fun PointerInputScope.geoOf(
 }
 
 private suspend fun PointerInputScope.handleChartTouches(
-    state: ChartViewState,
-    total: () -> Int,
+    state: CandleChartState,
     slop: Float,
     longPressMs: Long,
     priceGutter: Float,
@@ -340,9 +391,9 @@ private suspend fun PointerInputScope.handleChartTouches(
     timeH: Float,
     onCancelFling: () -> Unit,
     onFling: (vx: Float, slot: Float) -> Unit,
-    onTap: (x: Float, y: Float) -> Unit,
+    onTap: (x: Float) -> Unit,
     onDoubleTap: () -> Unit,
-    onCrosshair: (x: Float, y: Float) -> Unit,
+    onCrosshair: (x: Float) -> Unit,
     lastTapUptime: () -> Long,
     setLastTap: (Long) -> Unit,
 ) {
@@ -353,12 +404,13 @@ private suspend fun PointerInputScope.handleChartTouches(
         val vt = VelocityTracker()
         vt.addPosition(down.uptimeMillis, down.position)
         val start = down.position
-        var mode = ChartTouch.UNDECIDED
+        var mode = ChartGesture.Mode.UNDECIDED
         var last = start
         var pending: PointerEvent? = null
         var wait = longPressMs.coerceAtLeast(1L)
+        var hapticOnce = false
 
-        fun geo() = geoOf(state, total(), priceGutter, heatGutter, timeH)
+        fun geo() = geoOf(state, priceGutter, heatGutter, timeH)
 
         fun consume(changes: List<PointerInputChange>) {
             changes.forEach { if (it.pressed || it.positionChanged()) it.consume() }
@@ -367,19 +419,24 @@ private suspend fun PointerInputScope.handleChartTouches(
         fun apply(event: PointerEvent) {
             val pressed = event.changes.filter { it.pressed }
             if (pressed.isEmpty()) return
-            if (pressed.size >= 2) {
-                mode = ChartTouch.PINCH
+            mode = ChartGesture.afterMove(
+                mode = mode,
+                pointerCount = pressed.size,
+                dxFromStart = (pressed.first().position.x - start.x),
+                dyFromStart = (pressed.first().position.y - start.y),
+                startX = start.x,
+                slop = slop,
+                scaleLeft = geo().priceLeft,
+            )
+            if (pressed.size >= 2 || mode == ChartGesture.Mode.PINCH) {
+                mode = ChartGesture.Mode.PINCH
                 val z = event.calculateZoom()
                 val c = event.calculateCentroid()
                 val g = geo()
                 val focus = if (g.plotWidth <= 0f) 0.5f else ((c.x - g.plotLeft) / g.plotWidth).coerceIn(0f, 1f)
-                if (z != 1f) state.zoom(z, focus, total())
+                if (z != 1f) state.zoom(z, focus)
                 consume(event.changes)
                 last = c
-                return
-            }
-            if (mode == ChartTouch.PINCH) {
-                consume(event.changes)
                 return
             }
             val p = pressed.first()
@@ -387,53 +444,53 @@ private suspend fun PointerInputScope.handleChartTouches(
             val dx = p.position.x - last.x
             val dy = p.position.y - last.y
             when (mode) {
-                ChartTouch.PAN -> state.panByPixels(dx, geo().slot, total())
-                ChartTouch.PRICE -> state.nudgePriceZoom(dy / size.height.coerceAtLeast(1).toFloat())
-                ChartTouch.CROSS -> onCrosshair(p.position.x, p.position.y)
+                ChartGesture.Mode.PAN -> state.panByPixels(dx, geo().slot)
+                ChartGesture.Mode.PRICE -> state.nudgePriceZoom(dy / size.height.coerceAtLeast(1).toFloat())
+                ChartGesture.Mode.CROSS -> {
+                    if (!hapticOnce) {
+                        hapticOnce = true
+                        onCrosshair(p.position.x)
+                    } else {
+                        onTap(p.position.x)
+                    }
+                }
                 else -> Unit
             }
             consume(event.changes)
             last = p.position
         }
 
-        while (mode == ChartTouch.UNDECIDED) {
+        while (mode == ChartGesture.Mode.UNDECIDED) {
             val event = withTimeoutOrNull(wait) { awaitPointerEvent() }
             if (event == null) {
-                mode = ChartTouch.CROSS
-                onCrosshair(start.x, start.y)
+                mode = ChartGesture.afterTimeout(mode)
+                onCrosshair(start.x)
+                hapticOnce = true
                 break
             }
             val pressed = event.changes.filter { it.pressed }
             if (pressed.isEmpty()) {
                 val now = event.changes.firstOrNull()?.uptimeMillis ?: down.uptimeMillis
-                if (ChartGesture.isDoubleTap(now, lastTapUptime())) {
+                if (ChartGesture.tapKind(now, lastTapUptime()) == ChartGesture.Tap.DOUBLE) {
                     onDoubleTap()
                     setLastTap(0L)
                 } else {
-                    onTap(start.x, start.y)
+                    onTap(start.x)
                     setLastTap(now)
                 }
                 return@awaitEachGesture
             }
             pending = event
-            if (pressed.size >= 2) {
-                mode = ChartTouch.PINCH
-                break
-            }
-            val p = pressed.first()
-            val tdx = p.position.x - start.x
-            val tdy = p.position.y - start.y
-            if (ChartGesture.pastSlop(tdx, tdy, slop)) {
-                val g = geo()
-                mode = when (ChartGesture.dragKind(tdx, tdy, start.x, g.priceLeft)) {
-                    ChartGesture.Drag.PRICE_ZOOM -> ChartTouch.PRICE
-                    ChartGesture.Drag.PAN -> ChartTouch.PAN
-                }
-                break
-            }
-            last = p.position
-            vt.addPosition(p.uptimeMillis, p.position)
-            val elapsed = (p.uptimeMillis - down.uptimeMillis).coerceAtLeast(0L)
+            mode = ChartGesture.afterMove(
+                mode, pressed.size,
+                pressed.first().position.x - start.x,
+                pressed.first().position.y - start.y,
+                start.x, slop, geo().priceLeft,
+            )
+            if (mode != ChartGesture.Mode.UNDECIDED) break
+            last = pressed.first().position
+            vt.addPosition(pressed.first().uptimeMillis, pressed.first().position)
+            val elapsed = (pressed.first().uptimeMillis - down.uptimeMillis).coerceAtLeast(0L)
             wait = (longPressMs - elapsed).coerceAtLeast(1L)
         }
 
@@ -445,7 +502,7 @@ private suspend fun PointerInputScope.handleChartTouches(
             apply(event)
         }
 
-        if (mode == ChartTouch.PAN) {
+        if (mode == ChartGesture.Mode.PAN) {
             val vx = vt.calculateVelocity().x
             if (ChartGesture.shouldFling(vx)) onFling(vx, geo().slot)
         }
@@ -456,39 +513,34 @@ private suspend fun PointerInputScope.handleChartTouches(
 private fun DrawScope.drawChart(
     shown: List<Candle>,
     startIdx: Int,
-    entry: Double,
-    sl: Double,
-    tp: Double,
-    support: Double,
-    resistance: Double,
-    bidWall: Double,
-    askWall: Double,
-    spoof: Int,
-    divergeType: String,
-    heat: LiqHeat.Grid,
-    smc: Smc.Report,
+    levels: ChartLevels,
+    signals: ChartSignals,
+    heat: com.coinglass.intel.domain.LiqHeat.Grid,
+    smc: com.coinglass.intel.domain.Smc.Report,
     localVa: Triple<Double, Double, Double>,
     emaFast: List<Double>,
     emaSlow: List<Double>,
     lastClose: Double,
     hitIdx: Int,
-    state: ChartViewState,
+    state: CandleChartState,
     accent: Color,
-    measurer: TextMeasurer,
+    measurer: androidx.compose.ui.text.TextMeasurer,
+    labels: AxisLabelCache,
     geo: ChartLayout.Geo,
 ) {
-    val axisStyle = TextStyle(color = Color(0xFFDCE6EB), fontSize = 10.sp, fontFamily = FontFamily.Monospace)
-    val showVol = state.has(ChartViewState.FLAG_VOL)
+    val axisStyle = TextStyle(color = ChartInk.Axis, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+    val showVol = state.has(Overlay.VOL)
     val lo0 = shown.minOf { it.low }
     val hi0 = shown.maxOf { it.high }
     val (locVal, locPoc, locVah) = localVa
-    val raw = ChartRange.bounds(lo0, hi0, listOf(entry, sl, tp, locPoc))
+    val raw = ChartRange.bounds(lo0, hi0, listOf(levels.entry, levels.sl, levels.tp, locPoc))
     val mid = (raw.first + raw.second) / 2.0
     val half = ((raw.second - raw.first) / 2.0) * state.priceZoom.toDouble()
     val lo = mid - half
     val hi = mid + half
     val span = (hi - lo).let { if (it <= 0) 1.0 else it }
-    fun y(p: Double) = (geo.candleH * (1f - ((p - lo) / span).toFloat())).coerceIn(0f, geo.candleH)
+    fun yRaw(p: Double) = geo.candleH * (1f - ((p - lo) / span).toFloat())
+    fun y(p: Double) = yRaw(p).coerceIn(0f, geo.candleH)
     val n = shown.size
     val slot = geo.slot
     val bodyW = geo.bodyW()
@@ -502,30 +554,24 @@ private fun DrawScope.drawChart(
         val top = y(minOf(locVah, hi))
         val bot = y(maxOf(locVal, lo))
         if (bot > top) {
-            drawRect(Color(0x1400E5C3), Offset(geo.plotLeft, top), Size(geo.plotWidth, (bot - top).coerceAtLeast(2f)))
-            drawLine(Color(0x6600E5C3), Offset(geo.plotLeft, top), Offset(plotRight, top), 1.4f)
-            drawLine(Color(0x6600E5C3), Offset(geo.plotLeft, bot), Offset(plotRight, bot), 1.4f)
+            drawRect(ChartInk.VaFill, Offset(geo.plotLeft, top), Size(geo.plotWidth, (bot - top).coerceAtLeast(2f)))
+            drawLine(ChartInk.VaLine, Offset(geo.plotLeft, top), Offset(plotRight, top), 1.4f)
+            drawLine(ChartInk.VaLine, Offset(geo.plotLeft, bot), Offset(plotRight, bot), 1.4f)
         }
     }
-    if (ChartRange.inView(locPoc, lo, hi)) {
-        drawLine(accent.copy(alpha = 0.55f), Offset(geo.plotLeft, y(locPoc)), Offset(plotRight, y(locPoc)), 1.6f)
+    fun levelLine(px: Double, col: Color, width: Float, effect: PathEffect? = null) {
+        if (!ChartRange.inView(px, lo, hi)) return
+        drawLine(col, Offset(geo.plotLeft, y(px)), Offset(plotRight, y(px)), width, pathEffect = effect)
     }
-    if (ChartRange.inView(support, lo, hi)) {
-        drawLine(Bull.copy(alpha = 0.55f), Offset(geo.plotLeft, y(support)), Offset(plotRight, y(support)), 1.4f, pathEffect = thin)
-    }
-    if (ChartRange.inView(resistance, lo, hi)) {
-        drawLine(Bear.copy(alpha = 0.55f), Offset(geo.plotLeft, y(resistance)), Offset(plotRight, y(resistance)), 1.4f, pathEffect = thin)
-    }
-    val wallCol = if (spoof >= 50) Warn else accent
-    val wallDash = if (spoof >= 50) dash else null
-    if (ChartRange.inView(bidWall, lo, hi)) {
-        drawLine(wallCol.copy(alpha = 0.55f), Offset(geo.plotLeft, y(bidWall)), Offset(plotRight, y(bidWall)), 1.4f, pathEffect = wallDash)
-    }
-    if (ChartRange.inView(askWall, lo, hi)) {
-        drawLine(wallCol.copy(alpha = 0.55f), Offset(geo.plotLeft, y(askWall)), Offset(plotRight, y(askWall)), 1.4f, pathEffect = wallDash)
-    }
+    levelLine(locPoc, accent.copy(alpha = 0.55f), 1.6f)
+    levelLine(levels.support, Bull.copy(alpha = 0.55f), 1.4f, thin)
+    levelLine(levels.resistance, Bear.copy(alpha = 0.55f), 1.4f, thin)
+    val wallCol = if (signals.spoofSkip) Warn else accent
+    val wallDash = if (signals.spoofSkip) dash else null
+    levelLine(levels.bidWall, wallCol.copy(alpha = 0.55f), 1.4f, wallDash)
+    levelLine(levels.askWall, wallCol.copy(alpha = 0.55f), 1.4f, wallDash)
 
-    fun drawZone(z: Smc.Zone, col: Color) {
+    fun drawZone(z: com.coinglass.intel.domain.Smc.Zone, col: Color) {
         val x0i = z.startIdx - startIdx
         val x1i = (z.touchIdx ?: (startIdx + shown.lastIndex)) - startIdx
         if (x1i < 0 || x0i > shown.lastIndex) return
@@ -535,28 +581,32 @@ private fun DrawScope.drawChart(
         val bot = y(z.low)
         drawRect(col, Offset(left, minOf(top, bot)), Size((right - left).coerceAtLeast(2f), abs(bot - top).coerceAtLeast(2f)))
     }
-    if (state.has(ChartViewState.FLAG_OB)) {
+    if (state.has(Overlay.OB)) {
         smc.obs.forEach { z ->
             drawZone(z, (if (z.side == "bull") Bull else Bear).copy(alpha = if (z.touched) 0.08f else 0.20f))
         }
     }
-    if (state.has(ChartViewState.FLAG_FVG)) {
+    if (state.has(Overlay.FVG)) {
         smc.fvgs.filter { !it.touched }.forEach { z ->
             drawZone(z, (if (z.side == "bull") Bull else Bear).copy(alpha = 0.14f))
         }
     }
-    if (state.has(ChartViewState.FLAG_SWEEP)) {
+    if (state.has(Overlay.SWEEP)) {
         smc.sweeps.forEach { z ->
             val xi = z.endIdx - startIdx
             if (xi in shown.indices) {
                 val x = geo.xCenter(xi)
                 val lvl = if (z.side == "bear") z.low else z.high
-                drawLine(Warn, Offset(geo.plotLeft, y(lvl)), Offset(plotRight, y(lvl)), 1.2f, pathEffect = thin)
+                if (ChartRange.inView(lvl, lo, hi)) {
+                    drawLine(Warn, Offset(geo.plotLeft, y(lvl)), Offset(plotRight, y(lvl)), 1.2f, pathEffect = thin)
+                }
                 drawCircle(Warn, radius = 4f, center = Offset(x, y(if (z.side == "bear") z.high else z.low)))
             }
         }
     }
 
+    val volUp = Bull.copy(alpha = 0.35f)
+    val volDn = Bear.copy(alpha = 0.35f)
     shown.forEachIndexed { i, c ->
         val x = geo.xCenter(i)
         if (x < geo.plotLeft - slot || x > plotRight + slot) return@forEachIndexed
@@ -569,19 +619,11 @@ private fun DrawScope.drawChart(
         if (showVol && geo.volH > 0f) {
             val vh = (geo.volH * (c.volume / maxVol).toFloat()).coerceAtLeast(1f)
             val vTop = geo.volTop + geo.volH - vh
-            drawRect(
-                Brush.verticalGradient(
-                    listOf(col.copy(alpha = 0.55f), col.copy(alpha = 0.15f)),
-                    startY = vTop,
-                    endY = geo.volTop + geo.volH,
-                ),
-                Offset(x - bodyW / 2f, vTop),
-                Size(bodyW, vh),
-            )
+            drawRect(if (up) volUp else volDn, Offset(x - bodyW / 2f, vTop), Size(bodyW, vh))
         }
     }
 
-    if (state.has(ChartViewState.FLAG_EMA)) {
+    if (state.has(Overlay.EMA)) {
         fun drawEma(series: List<Double>, col: Color) {
             if (series.isEmpty()) return
             val path = Path()
@@ -600,11 +642,11 @@ private fun DrawScope.drawChart(
             }
             if (started) drawPath(path, col, style = Stroke(width = 1.6f))
         }
-        drawEma(emaFast, Color(0xFF64B5F6))
-        drawEma(emaSlow, Color(0xFFFFB74D))
+        drawEma(emaFast, ChartInk.EmaFast)
+        drawEma(emaSlow, ChartInk.EmaSlow)
     }
 
-    if (state.has(ChartViewState.FLAG_HEAT) && !heat.empty && geo.heatW > 2f) {
+    if (state.has(Overlay.HEAT) && !heat.empty && geo.heatW > 2f) {
         val left = geo.heatLeft
         val strip = geo.heatW
         for (b in heat.bins) {
@@ -618,13 +660,13 @@ private fun DrawScope.drawChart(
         }
     }
 
-    if (divergeType.isNotBlank()) {
+    if (signals.divergence != Divergence.NONE) {
         val x = geo.xCenter(shown.lastIndex)
-        drawCircle(if (divergeType.contains("bear")) Bear else Bull, 5f, Offset(x, y(shown.last().high) - 8f))
+        drawCircle(if (signals.divergence == Divergence.BEAR) Bear else Bull, 5f, Offset(x, y(shown.last().high) - 8f))
     }
-    if (entry > 0) drawLine(accent, Offset(geo.plotLeft, y(entry)), Offset(plotRight, y(entry)), 2f)
-    if (sl > 0) drawLine(Bear, Offset(geo.plotLeft, y(sl)), Offset(plotRight, y(sl)), 2f, pathEffect = dash)
-    if (tp > 0) drawLine(Warn, Offset(geo.plotLeft, y(tp)), Offset(plotRight, y(tp)), 2f, pathEffect = dash)
+    if (levels.entry > 0) levelLine(levels.entry, accent, 2f)
+    if (levels.sl > 0) levelLine(levels.sl, Bear, 2f, dash)
+    if (levels.tp > 0) levelLine(levels.tp, Warn, 2f, dash)
 
     val target = ChartRange.tickCount(lo, hi)
     val ticks = ChartRange.niceTicks(lo, hi, target)
@@ -635,7 +677,7 @@ private fun DrawScope.drawChart(
         val up = shown.last().close >= shown.last().open
         val badgeCol = if (up) Bull else Bear
         drawLine(badgeCol.copy(alpha = 0.7f), Offset(geo.plotLeft, lastY), Offset(gridRight, lastY), 1f, pathEffect = thin)
-        val layout = measurer.measure(ChartRange.fmtAxis(lastClose, step), axisStyle.copy(color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 9.sp))
+        val layout = labels.measure(measurer, ChartRange.fmtAxis(lastClose, step), axisStyle.copy(color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 9.sp))
         val bw = layout.size.width + 8f
         val bh = layout.size.height + 4f
         val bx = (geo.priceLeft + (geo.priceW - bw).coerceAtLeast(0f) / 2f).coerceAtMost(size.width - bw)
@@ -650,13 +692,19 @@ private fun DrawScope.drawChart(
         drawLine(accent.copy(alpha = 0.85f), Offset(hx, 0f), Offset(hx, geo.candleH + geo.volH), 1.3f)
         val cy = y(hc.close)
         drawLine(accent.copy(alpha = 0.45f), Offset(geo.plotLeft, cy), Offset(gridRight, cy), 1.2f, pathEffect = thin)
-        val tLayout = measurer.measure(ChartHit.formatTime(hc.openTime), axisStyle.copy(fontSize = 9.sp))
+        val tLayout = labels.measure(measurer, ChartHit.formatTime(hc.openTime), axisStyle.copy(fontSize = 9.sp))
         val tx = (hx - tLayout.size.width / 2f).coerceIn(geo.plotLeft, (plotRight - tLayout.size.width).coerceAtLeast(geo.plotLeft))
-        drawRect(Color(0xCC08141C), Offset(tx - 3f, geo.timeTop), Size(tLayout.size.width + 6f, tLayout.size.height + 2f))
+        drawRect(ChartInk.Plate, Offset(tx - 3f, geo.timeTop), Size(tLayout.size.width + 6f, tLayout.size.height + 2f))
         drawText(tLayout, topLeft = Offset(tx, geo.timeTop))
     }
 
-    drawLine(Color.White.copy(alpha = 0.12f), Offset(geo.priceLeft, 0f), Offset(geo.priceLeft, geo.candleH + geo.volH), 1f)
+    if (state.following) {
+        drawRect(ChartInk.Edge, Offset(plotRight - 6f, 0f), Size(6f, geo.candleH))
+    } else if (state.offsetFromEnd >= ChartViewport.maxOffset(state.total, state.visible)) {
+        drawRect(ChartInk.Edge, Offset(geo.plotLeft, 0f), Size(6f, geo.candleH))
+    }
+
+    drawLine(ChartInk.Divider, Offset(geo.priceLeft, 0f), Offset(geo.priceLeft, geo.candleH + geo.volH), 1f)
 
     val labelH = 12.sp.toPx()
     val placed = ChartRange.placeAxisLabels(
@@ -670,22 +718,19 @@ private fun DrawScope.drawChart(
     )
     for (t in ticks) {
         val yy = y(t)
-        drawLine(Color.White.copy(alpha = 0.07f), Offset(geo.plotLeft, yy), Offset(gridRight, yy), 1f)
+        drawLine(ChartInk.Grid, Offset(geo.plotLeft, yy), Offset(gridRight, yy), 1f)
     }
+    val tickStyle = axisStyle.copy(fontSize = 9.sp)
     for ((px, ly) in placed) {
-        val layout = measurer.measure(ChartRange.fmtAxis(px, step), axisStyle.copy(fontSize = 9.sp))
+        val layout = labels.measure(measurer, ChartRange.fmtAxis(px, step), tickStyle)
         val tx = (geo.priceLeft + geo.priceW - layout.size.width - 4f).coerceAtLeast(geo.priceLeft + 2f)
-        drawRect(
-            Color(0xB408141C),
-            Offset(tx - 3f, ly),
-            Size(layout.size.width + 6f, layout.size.height + 2f),
-        )
+        drawRect(ChartInk.PlateSoft, Offset(tx - 3f, ly), Size(layout.size.width + 6f, layout.size.height + 2f))
         drawText(layout, topLeft = Offset(tx, ly + 1f))
     }
 
+    val timeStyle = axisStyle.copy(color = ChartInk.AxisMute, fontSize = 9.sp)
     for (i in ChartLayout.timeLabelIndices(n, 4)) {
-        val label = ChartHit.formatTime(shown[i].openTime)
-        val layout = measurer.measure(label, axisStyle.copy(color = Color(0x99DCE6EB), fontSize = 9.sp))
+        val layout = labels.measure(measurer, ChartHit.formatTime(shown[i].openTime), timeStyle)
         val x = (geo.xCenter(i) - layout.size.width / 2f).coerceIn(geo.plotLeft, (plotRight - layout.size.width).coerceAtLeast(geo.plotLeft))
         drawText(layout, topLeft = Offset(x, geo.timeTop))
     }
@@ -693,22 +738,22 @@ private fun DrawScope.drawChart(
 
 @Composable
 private fun ChartHeader(
-    state: ChartViewState,
+    state: CandleChartState,
     chartTf: String,
     onSelectTf: (String) -> Unit,
     shownCount: Int,
     totalCount: Int,
-    entry: Double,
-    sl: Double,
-    tp: Double,
-    spoof: Int,
+    levels: ChartLevels,
+    signals: ChartSignals,
     scheme: ColorScheme,
+    onDesc: String,
+    offDesc: String,
     modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(Color.Black.copy(alpha = 0.38f))
+            .background(ChartInk.HeaderScrim)
             .padding(horizontal = Space.sm, vertical = 6.dp),
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -720,26 +765,28 @@ private fun ChartHeader(
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier
+                        .defaultMinSize(minWidth = 48.dp, minHeight = 40.dp)
                         .clip(RoundedCornerShape(Radii.sm))
                         .background(if (on) scheme.primary else Color.White.copy(alpha = 0.12f))
                         .clickable { onSelectTf(tf) }
-                        .padding(horizontal = Space.sm, vertical = 4.dp),
+                        .padding(horizontal = Space.sm, vertical = 4.dp)
+                        .semantics { role = Role.Button },
                 )
             }
             Spacer(Modifier.weight(1f))
             Text("$shownCount/$totalCount", color = Color.White.copy(alpha = 0.55f), fontSize = 10.sp, fontFamily = FontFamily.Monospace)
         }
-        Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            OverlayChip("OB", state.has(ChartViewState.FLAG_OB), scheme) { state.toggle(ChartViewState.FLAG_OB) }
-            OverlayChip("FVG", state.has(ChartViewState.FLAG_FVG), scheme) { state.toggle(ChartViewState.FLAG_FVG) }
-            OverlayChip("SWEEP", state.has(ChartViewState.FLAG_SWEEP), scheme) { state.toggle(ChartViewState.FLAG_SWEEP) }
-            OverlayChip("HEAT", state.has(ChartViewState.FLAG_HEAT), scheme) { state.toggle(ChartViewState.FLAG_HEAT) }
-            OverlayChip("EMA", state.has(ChartViewState.FLAG_EMA), scheme) { state.toggle(ChartViewState.FLAG_EMA) }
-            OverlayChip("VOL", state.has(ChartViewState.FLAG_VOL), scheme) { state.toggle(ChartViewState.FLAG_VOL) }
+        FlowRow(
+            modifier = Modifier.padding(top = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Overlay.entries.forEach { o ->
+                OverlayChip(o.name, state.has(o), onDesc, offDesc) { state.toggle(o) }
+            }
         }
         Text(
-            "e ${fmtPrice(entry)}  sl ${fmtPrice(sl)}  tp ${fmtPrice(tp)}" +
-                if (spoof >= 50) "  spoof-skip" else "",
+            "e ${fmtPrice(levels.entry)}  sl ${fmtPrice(levels.sl)}  tp ${fmtPrice(levels.tp)}" +
+                if (signals.spoofSkip) "  spoof-skip" else "",
             color = Color.White.copy(alpha = 0.7f),
             fontSize = 10.sp,
             modifier = Modifier.padding(top = 4.dp),
@@ -748,16 +795,16 @@ private fun ChartHeader(
 }
 
 @Composable
-private fun OverlayChip(label: String, on: Boolean, scheme: ColorScheme, click: () -> Unit) {
-    Text(
-        label,
-        color = if (on) scheme.onPrimary else Color.White.copy(alpha = 0.75f),
-        fontSize = 10.sp,
-        fontWeight = FontWeight.Bold,
+private fun OverlayChip(label: String, on: Boolean, onDesc: String, offDesc: String, onToggle: () -> Unit) {
+    FilterChip(
+        selected = on,
+        onClick = onToggle,
+        label = { Text(label, fontSize = 11.sp) },
         modifier = Modifier
-            .clip(RoundedCornerShape(Radii.sm))
-            .background(if (on) scheme.primary else Color.White.copy(alpha = 0.12f))
-            .clickable(onClick = click)
-            .padding(horizontal = Space.sm, vertical = 3.dp),
+            .defaultMinSize(minWidth = 48.dp, minHeight = 40.dp)
+            .semantics {
+                role = Role.Checkbox
+                stateDescription = if (on) onDesc else offDesc
+            },
     )
 }

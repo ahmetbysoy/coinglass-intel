@@ -17,6 +17,23 @@ val Bull = Color(0xFF12B76A)
 val Bear = Color(0xFFE11D48)
 val Warn = Color(0xFFF59E0B)
 
+/** Chart canvas stays dark in both themes so P/L inks stay readable. */
+object ChartInk {
+    val Plot = Color(0xFF08141C)
+    val Plate = Color(0xCC08141C)
+    val PlateSoft = Color(0xB408141C)
+    val VaFill = Color(0x1400E5C3)
+    val VaLine = Color(0x6600E5C3)
+    val Grid = Color(0x12FFFFFF)
+    val Divider = Color(0x1FFFFFFF)
+    val Axis = Color(0xFFDCE6EB)
+    val AxisMute = Color(0x99DCE6EB)
+    val EmaFast = Color(0xFF64B5F6)
+    val EmaSlow = Color(0xFFFFB74D)
+    val HeaderScrim = Color(0x61000000)
+    val Edge = Color(0x14FFFFFF)
+}
+
 private val DarkScheme = darkColorScheme(
     primary = Color(0xFF00E5C3),
     onPrimary = Color(0xFF00211C),

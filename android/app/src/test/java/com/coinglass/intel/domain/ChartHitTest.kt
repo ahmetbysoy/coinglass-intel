@@ -59,4 +59,15 @@ class ChartHitTest {
         assertNull(ChartHit.tip(emptyList(), 0))
         assertNull(ChartHit.tip(listOf(bar(1.0, 1.0)), 3))
     }
+
+    @Test
+    fun indexOfTimeSurvivesWindowShift() {
+        val bars = listOf(bar(10.0, 1.0), bar(20.0, 2.0), bar(30.0, 3.0))
+        assertEquals(1, ChartHit.indexOfTime(bars, 20.0))
+        val shifted = bars.drop(1)
+        assertEquals(0, ChartHit.indexOfTime(shifted, 20.0))
+        assertEquals(-1, ChartHit.indexOfTime(shifted, 10.0))
+        assertEquals(-1, ChartHit.indexOfTime(bars, null))
+        assertEquals(20.0, ChartHit.timeOf(bars, 1)!!, 0.0)
+    }
 }

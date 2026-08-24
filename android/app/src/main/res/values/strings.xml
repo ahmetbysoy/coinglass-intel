@@ -2,4 +2,10 @@
 <resources>
     <string name="app_name">CoinGlass Intel</string>
     <string name="widget_desc">Watchlist |skor| — senin yazdığın pairler</string>
+    <string name="chart_empty">Veri bekleniyor…</string>
+    <string name="chart_error">Grafik yüklenemedi</string>
+    <string name="chart_live">CANLI</string>
+    <string name="chart_auto_scale">Oto</string>
+    <string name="chart_overlay_on">açık</string>
+    <string name="chart_overlay_off">kapalı</string>
 </resources>

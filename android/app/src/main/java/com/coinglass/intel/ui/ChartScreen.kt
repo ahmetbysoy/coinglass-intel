@@ -10,7 +10,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.coinglass.intel.R
+import com.coinglass.intel.domain.ChartContent
+import com.coinglass.intel.domain.ChartLevels
+import com.coinglass.intel.domain.ChartSignals
+import com.coinglass.intel.domain.Divergence
+import com.coinglass.intel.domain.Smc
 import com.coinglass.intel.ui.theme.Space
 
 @Composable
@@ -25,6 +32,26 @@ fun ChartScreen(vm: AppViewModel) {
         "15m" -> state.candles15m
         else -> state.candles5m
     }
+    val snap = remember(candles) { candles.toList() }
+    val smc = remember(snap) { Smc.analyze(snap) }
+    val errText = stringResource(R.string.chart_error)
+    val content = remember(snap, state.loading, state.restErrors, state.liqHeat, smc, errText) {
+        ChartContent.of(snap, state.loading, state.restErrors, state.liqHeat, smc, errText)
+    }
+    val levels = ChartLevels(
+        entry = r?.price ?: 0.0,
+        sl = r?.sl ?: 0.0,
+        tp = r?.tp ?: 0.0,
+        support = r?.support ?: 0.0,
+        resistance = r?.resistance ?: 0.0,
+        bidWall = r?.bidWall ?: 0.0,
+        askWall = r?.askWall ?: 0.0,
+        poc = r?.poc ?: 0.0,
+    )
+    val signals = ChartSignals(
+        spoofScore = r?.spoof ?: 0,
+        divergence = Divergence.from(r?.divergeType.orEmpty()),
+    )
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -33,21 +60,11 @@ fun ChartScreen(vm: AppViewModel) {
     ) {
         Header(state)
         CandleChart(
-            candles = candles,
-            smc = remember(candles) { com.coinglass.intel.domain.Smc.analyze(candles) },
-            entry = r?.price ?: 0.0,
-            sl = r?.sl ?: 0.0,
-            tp = r?.tp ?: 0.0,
+            content = content,
+            levels = levels,
+            signals = signals,
             chartTf = state.chartTf,
             onSelectTf = { vm.selectChartTf(it) },
-            support = r?.support ?: 0.0,
-            resistance = r?.resistance ?: 0.0,
-            bidWall = r?.bidWall ?: 0.0,
-            askWall = r?.askWall ?: 0.0,
-            poc = r?.poc ?: 0.0,
-            spoof = r?.spoof ?: 0,
-            divergeType = r?.divergeType.orEmpty(),
-            liqHeat = state.liqHeat,
             initialVisible = cfg.chartVisibleBars,
             onVisibleChange = { n ->
                 if (n != cfg.chartVisibleBars) vm.updateSettings { it.copy(chartVisibleBars = n) }

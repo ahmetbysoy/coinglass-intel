@@ -1,40 +1,30 @@
 # Ziya Slim Pain Pro v6 → CoinGlass Intel
 
-Kaynak: `ziya_slim_pain_pro_v6` HTML. Grafik motoru **TradingView Lightweight Charts 4.1** (`handleScroll` + `handleScale`). Jestler kütüphanede; bizde `ChartViewport` + `ChartLayout` + `ChartGesture`.
+Kaynak: `ziya_slim_pain_pro_v6` HTML. Grafik motoru **TradingView Lightweight Charts 4.1**. Jestler `ChartViewport` + `ChartLayout` + `ChartGesture` + `CandleChartState`.
 
-## 1.16 — neden yeniden yazıldı
+## 1.17 — iskelet
 
-1.15 `detectTransformGestures` + tap + long-press **üç** `pointerInput` birbirini yiyordu. Pan her bar adımında fling başlatıyordu (parmak hâlâ ekrandayken). Pinch `pointerInput(visible)` key’i yüzünden zoom’da iptal oluyordu. Fiyat etiketleri mumların üstüne biniyordu, ızgara ham hi-lo / N idi.
+1.16 jestleri düzeltti ama 21 parametreli God-composable + `delay(16)` fling + index crosshair + her tick EMA kaldı. 1.17 patch 1→2→4→3→5:
 
-## Taşınan (1.16)
-
-| HTML (LW Charts) | Bizde |
+| Patch | Ne |
 |---|---|
-| 1 parmak yatay sürükle = pan | tek `awaitEachGesture`; sub-bar `pixelsToBars` |
-| 2 parmak pinch zoom (odaklı) | `zoomAccum` — 1.01× adımlar kaybolmaz |
-| `rightOffset: 5` canlı boşluk | `RIGHT_PAD` + `ChartLayout` plot |
-| Kinetic / atalet | **sadece bırakınca** fling 0.90 |
-| Sağ fiyat ekseninden dikey scale | fiyat gutter’da dikey sürükle |
-| `liqmap_chartrange` persist | `chartVisibleBars` DataStore |
-| Normal crosshair + OHLC | tap / uzun bas; tooltip üstte |
-| Time label on axis | crosshair HH:mm time-axis |
-| Double-click reset | double-tap reset + priceZoom=1 |
-| `scrollToRealTime` | **CANLI** (offset=0) |
-| Volume histogram overlay | VOL chip, plot altında |
-| Son fiyat çizgisi / rozet | gutter’da `fmtAxis` |
-| Heat overlay | sabit heat gutter, mumun üstünde değil |
-| Resize fill | `weight(1f)` ChartScreen |
+| 1 | `ChartData` / `ChartLevels` / `ChartSignals` / `Divergence` / `SPOOF_THRESHOLD` |
+| 2 | `CandleChartState` — `Set<Overlay>`, `total` SideEffect, `crosshairTime` |
+| 4 | `EmaCache`, `AxisLabelCache`, solid volume, window `toList()`, `snapshotFlow`+150ms |
+| 3 | `ChartGesture.afterMove/afterTimeout/tapKind`, `Animatable`+`splineBasedDecay`, haptic |
+| 5 | FilterChip, string resource, Loading/Error, dinamik tooltip, ⟲ Oto |
+
+## Jestler
+
+Tek parmak yatay = pan. İki parmak = pinch. Sağ fiyat gutter dikey = y-scale. Bırakınca spline fling (Hz bağımsız). Çift dokun = sıfırla. Uzun bas = crosshair + haptic. Crosshair mum `openTime` tutar; pencere kayınca aynı mum.
 
 ## Bilinçli taşınmayan
 
-- Pain Trend / HSI ayrı chart + time-scale sync
-- Whale / sweep HTML canvas overlay (bizde SMC chip + LiqHeat var)
-- CVD line sol scale (CVD Metrics/Nabız’da)
-- 1h / 4h TF (spec: sadece 1m 3m 5m 15m)
-- `createPriceLine` liq kademeleri (kaldıraç çizgileri)
-- AI / localStorage / Web Audio / Firebase
-- Magnet crosshair mode (ileride)
+- Pain Trend / HSI, whale canvas, CVD sol scale
+- 1h / 4h TF
+- Magnet crosshair
+- `kotlinx.collections.immutable` (snapshot `toList()`)
 
 ## Test
 
-`ChartViewportTest` (pan/zoom/remainder/swipe), `ChartGestureTest` (sınıflama/fling), `ChartLayoutTest` (gutter/hit=draw), `ChartRangeTest` (nice ticks / fmtAxis).
+`ChartModelsTest`, `ChartGestureTest` (resolver), `ChartHitTest.indexOfTime`, `EmaTest` cache, mevcut viewport/layout/range.

@@ -23,6 +23,15 @@ object ChartHit {
         return (x / slot).toInt().coerceIn(0, n - 1)
     }
 
+    /** Crosshair key is openTime, not window index. Missing → not in view. */
+    fun indexOfTime(shown: List<Candle>, openTime: Double?): Int {
+        if (openTime == null || shown.isEmpty()) return -1
+        val i = shown.binarySearchBy(openTime) { it.openTime }
+        return if (i >= 0) i else -1
+    }
+
+    fun timeOf(shown: List<Candle>, idx: Int): Double? = shown.getOrNull(idx)?.openTime
+
     fun timeMs(openTime: Double): Long {
         val t = openTime.toLong()
         return if (t in 1 until 10_000_000_000L) t * 1000L else t

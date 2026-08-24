@@ -70,4 +70,48 @@ class ChartGestureTest {
     fun flingBadSlotIsZero() {
         assertEquals(0f, ChartGesture.flingBarsPerFrame(800f, 0f), 0f)
     }
+
+    @Test
+    fun resolverStaysUndecidedUnderSlop() {
+        val m = ChartGesture.afterMove(ChartGesture.Mode.UNDECIDED, 1, 3f, 2f, 40f, 8f, 300f)
+        assertEquals(ChartGesture.Mode.UNDECIDED, m)
+    }
+
+    @Test
+    fun resolverHorizontalBecomesPan() {
+        val m = ChartGesture.afterMove(ChartGesture.Mode.UNDECIDED, 1, 20f, 2f, 40f, 8f, 300f)
+        assertEquals(ChartGesture.Mode.PAN, m)
+    }
+
+    @Test
+    fun resolverGutterVerticalBecomesPrice() {
+        val m = ChartGesture.afterMove(ChartGesture.Mode.UNDECIDED, 1, 1f, 20f, 310f, 8f, 300f)
+        assertEquals(ChartGesture.Mode.PRICE, m)
+    }
+
+    @Test
+    fun resolverTwoFingersIsPinchAndStays() {
+        val p = ChartGesture.afterMove(ChartGesture.Mode.UNDECIDED, 2, 0f, 0f, 40f, 8f, 300f)
+        assertEquals(ChartGesture.Mode.PINCH, p)
+        val stay = ChartGesture.afterMove(ChartGesture.Mode.PINCH, 1, 40f, 0f, 40f, 8f, 300f)
+        assertEquals(ChartGesture.Mode.PINCH, stay)
+    }
+
+    @Test
+    fun resolverTimeoutIsCrosshair() {
+        assertEquals(ChartGesture.Mode.CROSS, ChartGesture.afterTimeout(ChartGesture.Mode.UNDECIDED))
+        assertEquals(ChartGesture.Mode.PAN, ChartGesture.afterTimeout(ChartGesture.Mode.PAN))
+    }
+
+    @Test
+    fun resolverDoesNotLeavePan() {
+        val m = ChartGesture.afterMove(ChartGesture.Mode.PAN, 1, 1f, 40f, 310f, 8f, 300f)
+        assertEquals(ChartGesture.Mode.PAN, m)
+    }
+
+    @Test
+    fun tapKindDouble() {
+        assertEquals(ChartGesture.Tap.DOUBLE, ChartGesture.tapKind(1_000L, 800L))
+        assertEquals(ChartGesture.Tap.SINGLE, ChartGesture.tapKind(1_000L, 0L))
+    }
 }
