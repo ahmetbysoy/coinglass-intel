@@ -165,7 +165,7 @@ fun LiqHeatmap(
                         .pointerInput(grid.lo, grid.hi, n) {
                             var last = selectedNow
                             detectDragGestures { change, _ ->
-                                val idx = LiqHeat.binIndexAt(change.position.y, size.height, n)
+                                val idx = LiqHeat.binIndexAt(change.position.y, size.height.toFloat(), n)
                                 if (idx >= 0 && idx != last) {
                                     last = idx
                                     selected = idx
