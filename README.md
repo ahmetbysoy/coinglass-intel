@@ -26,7 +26,7 @@ Ayarlar’da CRUD. Sembol sen yazarsın (hardcode yok). Tip: fiyat / |skor| / |f
 
 ## Grafik
 
-v1.21: ChartScreen stateless hoist + ChartTf enum + SMC `Dispatchers.Default`. Overlay persist, magnet OHLC, KARAR satırı header. Jestler: tek parmak pan, pinch, sağ gutter y-scale, çift dokun sıfırla.
+v1.22: ViewModel helm — stale ticker combine’da, alarm quote = snaps+live, watch toggle `@Transaction`, FGS Android 12+ guard, SavedState tab, UiEvent snackbar. Grafik: ChartScreen hoist + ChartTf + SMC Default. Overlay persist, magnet OHLC, KARAR satırı.
 
 HTML envanter: [`CHART-HTML.md`](CHART-HTML.md).
 

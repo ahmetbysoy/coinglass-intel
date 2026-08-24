@@ -5,13 +5,18 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -25,7 +30,7 @@ import com.coinglass.intel.ui.SettingsScreen
 import com.coinglass.intel.ui.theme.CoinGlassTheme
 
 class MainActivity : ComponentActivity() {
-    private val vm: AppViewModel by viewModels()
+    private val vm: AppViewModel by viewModels { AppViewModel.Factory }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,8 +48,19 @@ class MainActivity : ComponentActivity() {
             val outcomes by vm.outcomes.collectAsStateWithLifecycle()
             val papers by vm.paperTrades.collectAsStateWithLifecycle()
             val live by vm.live.collectAsStateWithLifecycle()
+            val snack = remember { SnackbarHostState() }
+            LaunchedEffect(Unit) {
+                vm.events.collect { ev ->
+                    val msg = when (ev) {
+                        is AppViewModel.UiEvent.Error -> ev.message
+                        is AppViewModel.UiEvent.Info -> ev.message
+                    }
+                    snack.showSnackbar(msg)
+                }
+            }
             CoinGlassTheme(dark = settings.darkTheme) {
                 Scaffold(
+                    snackbarHost = { SnackbarHost(snack) },
                     bottomBar = {
                         NavigationBar {
                             NavigationBarItem(
@@ -86,7 +102,7 @@ class MainActivity : ComponentActivity() {
                         }
                     },
                 ) { pad ->
-                    androidx.compose.foundation.layout.Box(Modifier.padding(pad)) {
+                    Box(Modifier.padding(pad)) {
                         when (tab) {
                             1 -> ChartScreen(vm)
                             2 -> ScannerScreen(

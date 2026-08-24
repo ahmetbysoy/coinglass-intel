@@ -147,7 +147,7 @@ Test: `DiscoveryPickTest` + `ticker24h.json` → N/K seçimi; watchlist boşken 
 **yapıldı** (v1.18) `AlarmEngine` + Room `alarm` / `alarm_fire` v8.
 
 - CRUD Ayarlar’da. Sembol normalize. Tip: fiyat / \|skor\| / funding abs.
-- `AlarmEngine.check(snaps + live)` AlertService döngüsünde + canlı rapor. Dedup 10dk/alarmId.
+- `AlarmEngine.check(snaps + live)` AlertService döngüsünde + canlı rapor (`AlarmBook.evaluate(quotes=snaps, live)`). Dedup 10dk/alarmId.
 - Widget’a dokunulmaz.
 
 Test: `AlarmEngineTest` — abs skor/funding, 10dk dedup, normalize, hardcode yok.

@@ -1,1 +1,1 @@
-v1.21: ChartScreen hoist + ChartTf enum + SMC off main thread.
+v1.22: ViewModel helm — stale/alarm/toggle/FGS/SavedState/UiEvent.

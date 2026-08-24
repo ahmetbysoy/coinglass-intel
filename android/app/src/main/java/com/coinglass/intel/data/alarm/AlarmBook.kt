@@ -33,6 +33,7 @@ class AlarmBook(private val db: AppDb) {
         db.alarmFire().delete(id)
     }
 
+    /** `quotes` = watchlist snaps (+ extras). Alarms always load from Room — never pass the alarm table here. */
     suspend fun evaluate(quotes: List<AlarmQuote>, live: AlarmQuote?, now: Long): List<AlarmHit> {
         val alarms = db.alarm().all().mapNotNull { it.toSpec() }
         val last = db.alarmFire().all().associate { it.alarmId to it.lastTs }
